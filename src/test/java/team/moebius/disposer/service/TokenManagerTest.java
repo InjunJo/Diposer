@@ -1,0 +1,278 @@
+package team.moebius.disposer.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import team.moebius.disposer.domain.ReceiveInfo;
+import team.moebius.disposer.domain.TokenInfo;
+import team.moebius.disposer.entity.Recipient;
+import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.repo.RecipientRepository;
+import team.moebius.disposer.repo.TokenRepository;
+
+@ExtendWith(MockitoExtension.class)
+class TokenManagerTest {
+
+    @InjectMocks
+    TokenManager tokenManager;
+
+    @Mock
+    TokenRepository tokenRepository;
+
+    @Mock
+    RecipientRepository recipientRepository;
+
+    Token token;
+
+    long distributorUserId = 1234567L;
+
+    long anotherUserId = 11111L;
+
+    String roomId = "ABC";
+
+    long targetTime;
+
+    String tokenKey = "abc";
+
+    TokenInfo tokenInfo;
+
+    @BeforeEach
+    public void setUp() {
+        long now = ZonedDateTime.now().toInstant().toEpochMilli();
+        targetTime = now;
+
+        token = buildToken(now);
+        tokenInfo = buildTokenInfo();
+    }
+
+    private Token buildToken(long now) {
+        return Token.builder()
+            .tokenKey(tokenKey)
+            .createdDateTime(now)
+            .receiveExp(now + 10 * 60 * 1000)
+            .readExp(now + 7L * 24 * 60 * 60 * 1000)
+            .amount(10000L)
+            .recipientCount(3)
+            .distributorId(distributorUserId)
+            .roomId(roomId)
+            .build();
+    }
+    private TokenInfo buildTokenInfo() {
+
+        List<ReceiveInfo> receiveInfoList = List.of(
+            new ReceiveInfo(30000L, 234L),
+            new ReceiveInfo(30000L, 222L)
+        );
+
+        return TokenInfo.builder()
+            .distributeTime(LocalDateTime.now())
+            .distributeAmount(90000L)
+            .receiveTotalAmount(60000L)
+            .receiveInfoList(receiveInfoList)
+            .build();
+    }
+
+    @Test
+    @DisplayName("자신이 뿌리한 건을 자신이 받으려고 할 때 예외가 던져진다")
+    public void test() {
+        /* given */
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey)).thenReturn(
+            Optional.ofNullable(token));
+
+        Executable e = () -> tokenManager.provideShare(distributorUserId, roomId, tokenKey, targetTime);
+
+        /* then */
+
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+    @Test
+    @DisplayName("roomId과 일치하는 token이 아닐 때 예외가 던져진다.")
+    public void test2() {
+        /* given */
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.empty());
+
+        Executable e = () -> tokenManager.provideShare(anotherUserId, roomId, tokenKey,
+            targetTime);
+
+        /* then */
+
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+    @Test
+    @DisplayName("tokenKey에 해당하는 token을 찾지 못하면 예외가 던져진다.")
+    public void test3() {
+        /* given */
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.empty());
+
+        Executable e = () -> tokenManager.provideShare(anotherUserId, roomId, tokenKey,
+            targetTime);
+
+        /* then */
+
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+    @Test
+    @DisplayName("요구 조건에 맞는 사용자가 받기 요청을 할 때, 분배된 금액을 반환할 수 있다")
+    public void test4() {
+        /* given */
+
+        List<Recipient> recipientList = List.of(
+            new Recipient(token, 3000L),
+            new Recipient(token, 3000L),
+            new Recipient(token, 3000L)
+        );
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.ofNullable(token));
+        when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
+
+        long amount = tokenManager.provideShare(anotherUserId, roomId, tokenKey, targetTime);
+
+        /* then */
+        assertEquals(3000L, amount);
+    }
+
+    @Test
+    @DisplayName("유효 시간이 지난 token에 대한 받기 요청은 예외를 던질 수 있다")
+    public void test5() {
+        /* given */
+
+        String tokenKey = "ByC";
+        Long overTime = targetTime + 1000000L;
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.ofNullable(token));
+
+        Executable e = () -> tokenManager.provideShare(anotherUserId, roomId, tokenKey, overTime);
+
+        /* then */
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+    @Test
+    @DisplayName("이미 뿌리기 건에 대해 받아간 유저가 재차 시도시 예외를 던질 수 있다.")
+    public void test6() {
+        /* given */
+
+        String tokenKey = "ByC";
+
+        List<Recipient> recipientList = List.of(
+            new Recipient(token, 3000L, anotherUserId),
+            new Recipient(token, 3000L),
+            new Recipient(token, 3000L)
+        );
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.ofNullable(token));
+        when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
+
+        Executable e = () -> tokenManager.provideShare(anotherUserId, roomId, tokenKey, targetTime);
+
+        /* then */
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+    @Test
+    @DisplayName("이미 모두 받아간 뿌리기에 대해 요청하면 예외를 던질 수 있다")
+    public void test7() {
+        /* given */
+
+        long userId1 = 1234567L;
+        long userId2 = 1234568L;
+        long userId3 = 1234569L;
+        long newUserId = 1234570L;
+
+        String tokenKey = "ByC";
+
+        List<Recipient> recipientList = List.of(
+            new Recipient(token, 3000L, userId1),
+            new Recipient(token, 3000L, userId2),
+            new Recipient(token, 3000L, userId3)
+        );
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.ofNullable(token));
+        when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
+
+        Executable e = () -> tokenManager.provideShare(newUserId, roomId, tokenKey, targetTime);
+
+        /* then */
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+    @Test @DisplayName("뿌린 사람 자신은 뿌린 건에 대해 조회할 수 있다")
+    public void test8() {
+        /* given */
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.ofNullable(token));
+
+        TokenInfo tokenInfo = tokenManager.provideInfo(distributorUserId, roomId, tokenKey, targetTime);
+
+        /* then */
+        assertNotNull(tokenInfo);
+    }
+
+    @Test @DisplayName("뿌린 사람이 아닌 사람이 뿌린 건에 대해 조회하려고 할 때 예외를 반환할 수 있다.")
+    public void test9() {
+        /* given */
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.ofNullable(token));
+
+        Executable e = () -> tokenManager.provideInfo(anotherUserId, roomId, tokenKey, targetTime);
+
+        /* then */
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+    @Test @DisplayName("조회 유효 기간이 만료되면 예외를 던질 수 있다.")
+    public void test10() {
+        /* given */
+
+        Token token = buildToken(targetTime-7L * 24 * 60 * 60 * 1000);
+
+        /* when */
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+            .thenReturn(Optional.ofNullable(token));
+
+        Executable e = () -> tokenManager.provideInfo(distributorUserId, roomId, tokenKey, targetTime);
+
+        /* then */
+        assertThrows(IllegalArgumentException.class, e);
+    }
+
+
+
+}
