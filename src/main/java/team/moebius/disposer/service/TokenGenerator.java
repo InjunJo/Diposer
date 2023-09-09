@@ -1,6 +1,7 @@
 package team.moebius.disposer.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team.moebius.disposer.entity.Recipient;
 import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.exception.TokenException;
 import team.moebius.disposer.repo.RecipientRepository;
 import team.moebius.disposer.repo.TokenRepository;
 
@@ -19,6 +21,7 @@ public class TokenGenerator {
     private static final int KEY_LENGTH = 3;
     private static final long RECEIVE_EXP = 10 * 60 * 1000;
     private static final long READ_EXP = 7L * 24 * 60 * 60 * 1000;
+    private static final int LIMIT_TRIAL = 10;
     private final TokenRepository tokenRepository;
     private final RecipientRepository recipientRepository;
 
@@ -27,10 +30,26 @@ public class TokenGenerator {
 
         Token token = buildToken(nowDataTime,userId,roomId,amount,recipientCount);
 
+        int trial = 0;
+
+        while (isDuplicateToken(roomId,token)){
+            if(++trial >= LIMIT_TRIAL){
+                throw new TokenException();
+            }
+            token = buildToken(nowDataTime,userId,roomId,amount,recipientCount);
+        }
+
         tokenRepository.save(token);
         generateRecipients(token,amount,recipientCount);
 
         return token.getTokenKey();
+    }
+
+    private boolean isDuplicateToken(String roomId,Token token){
+        Optional<Token> optionalToken =
+            tokenRepository.findTokenByRoomIdAndTokenKey(roomId, token.getTokenKey());
+
+        return optionalToken.isPresent();
     }
 
     // 뿌릴 금액을 인원 수에 맞게 분배하여 저장 한다.

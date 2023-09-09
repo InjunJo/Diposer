@@ -9,6 +9,9 @@ import team.moebius.disposer.domain.ReceiveInfo;
 import team.moebius.disposer.domain.TokenInfo;
 import team.moebius.disposer.entity.Recipient;
 import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.exception.NotFoundTokenException;
+import team.moebius.disposer.exception.RecipientException;
+import team.moebius.disposer.exception.TokenException;
 import team.moebius.disposer.repo.RecipientRepository;
 import team.moebius.disposer.repo.TokenRepository;
 import team.moebius.disposer.util.DateTimeSupporter;
@@ -98,7 +101,7 @@ public class TokenManager {
             .findAny();
 
         if (optionalRecipient.isEmpty()) {
-            throw new IllegalArgumentException("모두 받기가 완료된 뿌리기 건");
+            throw new RecipientException("The distribution has been fully received");
         }
 
         return optionalRecipient.get();
@@ -112,20 +115,20 @@ public class TokenManager {
             );
 
         if (isAlreadyReceiveUser) {
-            throw new IllegalArgumentException("이미 뿌리기에 대해 받은 사용자 요청");
+            throw new RecipientException("User has already received a share from the distribution");
         }
     }
 
 
     private void checkReceiveExpTime(Token token, long targetTime) {
         if (token.getReceiveExp() <= targetTime) {
-            throw new IllegalArgumentException("receive 유효 시간이 지난 토큰");
+            throw new TokenException("The token has expired for receiving.");
         }
     }
 
     private void checkReadExpTime(Token token, long targetTime) {
         if (token.getReadExp() <= targetTime) {
-            throw new IllegalArgumentException("read 유효 시간이 지난 토큰");
+            throw new TokenException("The token has expired for reading.");
         }
     }
 
@@ -135,7 +138,7 @@ public class TokenManager {
             tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey);
 
         if (optionalToken.isEmpty()) {
-            throw new IllegalArgumentException("This token is not present");
+            throw new NotFoundTokenException("The specified token does not exist.");
         }
 
         return optionalToken.get();
@@ -145,11 +148,11 @@ public class TokenManager {
     private void filterDistributorRequest(long userId, Token token, boolean isExcludeDistributor) {
 
         if (isExcludeDistributor && token.isDistributor(userId)) {
-            throw new IllegalArgumentException("자신이 뿌리기 한 토큰에 대한 몫을 받을 수 없음");
+            throw new TokenException("You cannot receive a share from a token you distributed.");
         }
 
         if (!isExcludeDistributor && !token.isDistributor(userId)) {
-            throw new IllegalArgumentException("자신이 뿌리기 한 토큰에 대해서만 조회가 가능");
+            throw new TokenException("You can only query tokens you distributed.");
         }
     }
 
