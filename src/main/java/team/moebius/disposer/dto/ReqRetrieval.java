@@ -7,4 +7,6 @@ public class ReqRetrieval {
 
     private String tokenKey;
 
+    private String createTime;
+
 }
