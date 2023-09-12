@@ -19,9 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import team.moebius.disposer.entity.Recipient;
 import team.moebius.disposer.entity.Token;
 import team.moebius.disposer.dto.ReqDistribution;
@@ -45,7 +43,10 @@ class TokenCommandServiceTest {
     RecipientRepository recipientRepository;
 
     @Mock
-    RedisService redisService;
+    TokenRedisService tokenRedisService;
+
+    @Mock
+    TokenQueryService tokenQueryService;
 
     Token token;
 
@@ -131,20 +132,6 @@ class TokenCommandServiceTest {
         assertEquals(3, tokenKey.length());
     }
 
-    @Test
-    @DisplayName("생성된 token key는 중복되지 않는다.")
-    public void test4() {
-        /* given */
-
-        /* when */
-        Set<String> stringSet = Stream.generate(() -> tokenCommandService.generateTokenKey())
-            .limit(100)
-            .collect(Collectors.toSet());
-
-        /* then */
-
-        assertEquals(100, stringSet.size());
-    }
 
     @Test
     @DisplayName("token을 생성하여 임의의 3자리 tokenKey를 반환할 수 있다.")
@@ -192,48 +179,11 @@ class TokenCommandServiceTest {
         /* given */
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey)).thenReturn(
-            Optional.ofNullable(token));
-
-        Executable e = () -> tokenCommandService.provideShare(distributorUserId, roomId, tokenKey, createTime,targetTime);
+        Executable e = () -> tokenCommandService.provideShare(distributorUserId, token,targetTime);
 
         /* then */
 
         assertThrows(TokenException.class, e);
-    }
-
-    @Test
-    @DisplayName("roomId과 일치하는 token이 아닐 때 예외가 던져진다.")
-    public void test8() {
-        /* given */
-
-        /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.empty());
-
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId,tokenKey,createTime,
-            targetTime);
-
-        /* then */
-
-        assertThrows(NotFoundTokenException.class, e);
-    }
-
-    @Test
-    @DisplayName("tokenKey에 해당하는 token을 찾지 못하면 예외가 던져진다.")
-    public void test9() {
-        /* given */
-
-        /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.empty());
-
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime,
-            targetTime);
-
-        /* then */
-
-        assertThrows(NotFoundTokenException.class, e);
     }
 
     @Test
@@ -248,11 +198,9 @@ class TokenCommandServiceTest {
         );
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
 
-        long amount = tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime, targetTime);
+        long amount = tokenCommandService.provideShare(anotherUserId, token,targetTime);
 
         /* then */
         assertEquals(3000L, amount);
@@ -267,10 +215,8 @@ class TokenCommandServiceTest {
         Long overTime = targetTime + 1000000L;
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.ofNullable(token));
 
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime, overTime);
+        Executable e = () -> tokenCommandService.provideShare(anotherUserId,token,overTime);
 
         /* then */
         assertThrows(TokenException.class, e);
@@ -290,11 +236,9 @@ class TokenCommandServiceTest {
         );
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
 
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime, targetTime);
+        Executable e = () -> tokenCommandService.provideShare(anotherUserId,token,targetTime);
 
         /* then */
         assertThrows(RecipientException.class, e);
@@ -319,11 +263,9 @@ class TokenCommandServiceTest {
         );
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
 
-        Executable e = () -> tokenCommandService.provideShare(newUserId, roomId, tokenKey,createTime, targetTime);
+        Executable e = () -> tokenCommandService.provideShare(newUserId,token,targetTime);
 
         /* then */
         assertThrows(RecipientException.class, e);

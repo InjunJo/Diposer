@@ -3,51 +3,56 @@ package team.moebius.disposer.service;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import team.moebius.disposer.domain.TokenInfoMapper;
 import team.moebius.disposer.entity.Recipient;
+import team.moebius.disposer.entity.RecipientResult;
 import team.moebius.disposer.entity.Token;
 import team.moebius.disposer.exception.NotFoundTokenException;
 import team.moebius.disposer.exception.RecipientException;
 import team.moebius.disposer.exception.TokenException;
 import team.moebius.disposer.repo.RecipientRepository;
+import team.moebius.disposer.repo.RecipientResultRepository;
 import team.moebius.disposer.repo.TokenRepository;
 
 @Service
 @RequiredArgsConstructor
 public class TokenCommandService {
+
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final int KEY_LENGTH = 3;
     private static final long RECEIVE_EXP = 10 * 60 * 1000;
     private static final long READ_EXP = 7L * 24 * 60 * 60 * 1000;
     private final TokenRepository tokenRepository;
-    private final RecipientRepository recipientRepository;
     private final TokenQueryService tokenQueryService;
-    private final RedisService redisService;
+    private final RecipientResultRepository recipientResultRepository;
+    private final RecipientRepository recipientRepository;
+    private final TokenRedisService tokenRedisService;
+
 
     @Transactional
-    public String generateToken(Long userId,String roomId,Long amount,int recipientCount,long nowDataTime){
+    public String generateToken(Long userId, String roomId, Long amount, int recipientCount,
+        long nowDataTime) {
 
-        Token token = buildToken(nowDataTime,userId,roomId,amount,recipientCount);
+        Token token = buildToken(nowDataTime, userId, roomId, amount, recipientCount);
 
         Token savedToken = tokenRepository.save(token);
-        redisService.saveTokenToRedis(savedToken);
-        generateRecipients(token,amount,recipientCount);
+        tokenRedisService.saveTokenToRedis(savedToken);
+        generateRecipients(token, amount, recipientCount);
 
         return token.getTokenKey();
     }
 
     // 뿌리기에 대한 받기 작업을 처리 한다.
     @Transactional
-    public Long provideShare(long userId, String roomId, String tokenKey,String createTime,Long targetTime)
+    public Long provideShare(long userId, Token token, Long targetTime)
         throws NotFoundTokenException, TokenException {
-
-        // 요청한 작업의 Token이 존재 하는지, 존재 한다면 해당 Token 데이터를 반환 받는다. 없다면 에러를 반환 한다.
-        Token token = tokenQueryService.checkIsPresentAndGetToken(roomId, tokenKey,createTime);
 
         // 뿌리기를 한 사용자가 받기 작업을 요청 했다면 에러를 반환 한다.
         filterDistributorRequest(userId, token);
@@ -57,6 +62,26 @@ public class TokenCommandService {
 
         // Token에 대해 받기 작업이 가능한 데이터를 찾아 반환 한다.
         return findReceivableRecipient(token, userId);
+    }
+
+    @Scheduled(fixedRate = RECEIVE_EXP)
+    @Transactional
+    void savePreComputedResult() {
+        Set<Token> readExpiredTokens = tokenRedisService.findExpiredReceiveToken();
+
+        List<RecipientResult> recipientResults = mapTokensToRecipientResults(readExpiredTokens);
+
+        recipientResultRepository.saveAll(recipientResults);
+    }
+
+    private List<RecipientResult> mapTokensToRecipientResults(Set<Token> readExpiredTokens) {
+        return readExpiredTokens.stream()
+            .map(token ->
+                new RecipientResult(
+                    token,
+                    TokenInfoMapper.toJson(tokenQueryService.provideTokenInfo(token)))
+            )
+            .toList();
     }
 
     private Long findReceivableRecipient(Token token, long userId) {
@@ -78,11 +103,9 @@ public class TokenCommandService {
             .filter(recipient -> recipient.getUserId() == null)
             .findAny();
 
-        if (optionalRecipient.isEmpty()) {
-            throw new RecipientException("The distribution has been fully received");
-        }
-
-        return optionalRecipient.get();
+        return optionalRecipient.orElseThrow(() ->
+            new RecipientException("The distribution has been fully received")
+        );
     }
 
     private void checkAlreadyReceiveUser(List<Recipient> recipients, long userId) {
@@ -114,9 +137,8 @@ public class TokenCommandService {
     }
 
 
-
     // 뿌릴 금액을 인원 수에 맞게 분배하여 저장 한다.
-    private void generateRecipients(Token token,Long amount,int recipientCount){
+    private void generateRecipients(Token token, Long amount, int recipientCount) {
 
         List<Recipient> recipients = divideAmount(amount, recipientCount).stream()
             .map(money -> new Recipient(token, money))
@@ -126,8 +148,8 @@ public class TokenCommandService {
     }
 
     // 뿌리기 요청을 받아 각각 처리된 Token 데이터를 저장 한다.
-    Token buildToken(long now,Long userId,String roomId,Long amount,int recipientCount){
-       return Token.builder()
+    Token buildToken(long now, Long userId, String roomId, Long amount, int recipientCount) {
+        return Token.builder()
             .tokenKey(generateTokenKey())
             .createdDateTime(now)
             .receiveExp(getReceiveExpTime(now))
@@ -152,7 +174,7 @@ public class TokenCommandService {
     }
 
     // 뿌릴 전체 금액에 대해  뿌릴 인원을 나누고, 나누어 떨어지지 않아 남는 나머지는 한쪽에 저장 한다.
-    private List<Long> divideAmount(Long amount,int recipientCount){
+    private List<Long> divideAmount(Long amount, int recipientCount) {
 
         long bonus = amount % recipientCount;
         long baseAmount = amount / recipientCount;
@@ -163,15 +185,18 @@ public class TokenCommandService {
     }
 
     // unix time 형식으로 뿌리기 건에 대한 받기 요청 10분 유효 시간을 계산해서 반환 한다.
-    long getReceiveExpTime(long epochMilli){
-        return epochMilli+RECEIVE_EXP;
+    long getReceiveExpTime(long epochMilli) {
+        return epochMilli + RECEIVE_EXP;
     }
 
     // unix time 형식으로 뿌리기 건에 대한 조회 요청 7일 유효 시간을 계산해서 반환 한다.
-    long getReadExpTime(long epochMilli){
-        return epochMilli+READ_EXP;
+    long getReadExpTime(long epochMilli) {
+        return epochMilli + READ_EXP;
     }
 
+    static long getReceiveExp() {
+        return RECEIVE_EXP;
+    }
 
 
 }

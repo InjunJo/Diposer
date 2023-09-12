@@ -12,9 +12,9 @@ import team.moebius.disposer.domain.TokenInfo;
 import team.moebius.disposer.dto.ReqDistribution;
 import team.moebius.disposer.dto.ReqReceive;
 import team.moebius.disposer.dto.ReqRetrieval;
-import team.moebius.disposer.dto.RespDistribution;
 import team.moebius.disposer.dto.RespReceive;
 import team.moebius.disposer.dto.RespToken;
+import team.moebius.disposer.entity.Token;
 import team.moebius.disposer.service.TokenCommandService;
 import team.moebius.disposer.service.TokenQueryService;
 import team.moebius.disposer.util.DateTimeSupporter;
@@ -47,11 +47,12 @@ public class DisposerController {
     public ResponseEntity<RespReceive> receive(@RequestHeader("X-USER-ID") Long userId,
         @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqReceive reqReceive){
 
+        Token token = tokenQueryService.checkIsPresentAndGetToken(roomId, reqReceive.getTokenKey(),
+            reqReceive.getCreateTime());
+
         long shareAmount = tokenCommandService.provideShare(
             userId,
-            roomId,
-            reqReceive.getTokenKey(),
-            reqReceive.getCreateTime(),
+            token,
             DateTimeSupporter.getNowUnixTime()
         );
 
@@ -62,7 +63,7 @@ public class DisposerController {
     public ResponseEntity<TokenInfo> RetrieveDistributionInfo(@RequestHeader("X-USER-ID") Long userId,
         @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqRetrieval reqRetrieval){
 
-        TokenInfo tokenInfo = tokenQueryService.provideInfo(
+        TokenInfo tokenInfo = tokenQueryService.provideTokenInfo(
             userId,
             roomId,
             reqRetrieval.getTokenKey(),

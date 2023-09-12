@@ -22,4 +22,12 @@ public class RecipientResult {
     @Column(columnDefinition = "json")
     private String result;
 
+    public RecipientResult(Token token, String result) {
+        this.token = token;
+        this.result = result;
+    }
+
+    public RecipientResult() {
+
+    }
 }
