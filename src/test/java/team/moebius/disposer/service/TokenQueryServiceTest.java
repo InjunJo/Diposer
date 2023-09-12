@@ -38,6 +38,9 @@ class TokenQueryServiceTest {
     @Mock
     RecipientRepository recipientRepository;
 
+    @Mock
+    RedisService redisService;
+
     Token token;
 
     long distributorUserId = 1234567L;
@@ -48,6 +51,8 @@ class TokenQueryServiceTest {
 
     long targetTime;
 
+    String createTime;
+
     String tokenKey = "abc";
 
     TokenInfo tokenInfo;
@@ -56,6 +61,7 @@ class TokenQueryServiceTest {
     public void setUp() {
         long now = ZonedDateTime.now().toInstant().toEpochMilli();
         targetTime = now;
+        createTime = String.valueOf(now);
 
         token = buildToken(now);
         tokenInfo = buildTokenInfo();
@@ -103,7 +109,7 @@ class TokenQueryServiceTest {
             .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findReceiveAllByToken(token.getId())).thenReturn(recipients);
 
-        TokenInfo tokenInfo = tokenQueryService.provideInfo(distributorUserId, roomId, tokenKey, targetTime);
+        TokenInfo tokenInfo = tokenQueryService.provideInfo(distributorUserId, roomId, tokenKey,createTime,targetTime);
 
         /* then */
         assertNotNull(tokenInfo);
@@ -117,7 +123,7 @@ class TokenQueryServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
             .thenReturn(Optional.ofNullable(token));
 
-        Executable e = () -> tokenQueryService.provideInfo(anotherUserId, roomId, tokenKey, targetTime);
+        Executable e = () -> tokenQueryService.provideInfo(anotherUserId, roomId, tokenKey,createTime, targetTime);
 
         /* then */
         assertThrows(TokenException.class, e);
@@ -133,7 +139,7 @@ class TokenQueryServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
             .thenReturn(Optional.ofNullable(token));
 
-        Executable e = () -> tokenQueryService.provideInfo(distributorUserId, roomId, tokenKey, targetTime);
+        Executable e = () -> tokenQueryService.provideInfo(distributorUserId, roomId, tokenKey,createTime, targetTime);
 
         /* then */
         assertThrows(TokenException.class, e);

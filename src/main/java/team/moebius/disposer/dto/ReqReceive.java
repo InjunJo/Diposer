@@ -9,4 +9,6 @@ public class ReqReceive {
 
     private String tokenKey;
 
+    private String createTime;
+
 }
