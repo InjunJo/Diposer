@@ -22,6 +22,7 @@ import team.moebius.disposer.domain.ReceiveInfo;
 import team.moebius.disposer.domain.TokenInfo;
 import team.moebius.disposer.entity.Recipient;
 import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.exception.NotFoundTokenException;
 import team.moebius.disposer.exception.TokenException;
 import team.moebius.disposer.repo.RecipientRepository;
 import team.moebius.disposer.repo.TokenRepository;
@@ -39,7 +40,7 @@ class TokenQueryServiceTest {
     RecipientRepository recipientRepository;
 
     @Mock
-    RedisService redisService;
+    TokenRedisService tokenRedisService;
 
     Token token;
 
@@ -87,7 +88,7 @@ class TokenQueryServiceTest {
         );
 
         return TokenInfo.builder()
-            .distributeTime(LocalDateTime.now())
+            .distributeTime(LocalDateTime.now().toString())
             .distributeAmount(90000L)
             .receiveTotalAmount(60000L)
             .receiveInfoList(receiveInfoList)
@@ -109,7 +110,7 @@ class TokenQueryServiceTest {
             .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findReceiveAllByToken(token.getId())).thenReturn(recipients);
 
-        TokenInfo tokenInfo = tokenQueryService.provideInfo(distributorUserId, roomId, tokenKey,createTime,targetTime);
+        TokenInfo tokenInfo = tokenQueryService.provideTokenInfo(distributorUserId, roomId, tokenKey,createTime,targetTime);
 
         /* then */
         assertNotNull(tokenInfo);
@@ -123,7 +124,7 @@ class TokenQueryServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
             .thenReturn(Optional.ofNullable(token));
 
-        Executable e = () -> tokenQueryService.provideInfo(anotherUserId, roomId, tokenKey,createTime, targetTime);
+        Executable e = () -> tokenQueryService.provideTokenInfo(anotherUserId, roomId, tokenKey,createTime, targetTime);
 
         /* then */
         assertThrows(TokenException.class, e);
@@ -139,10 +140,42 @@ class TokenQueryServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
             .thenReturn(Optional.ofNullable(token));
 
-        Executable e = () -> tokenQueryService.provideInfo(distributorUserId, roomId, tokenKey,createTime, targetTime);
+        Executable e = () -> tokenQueryService.provideTokenInfo(distributorUserId, roomId, tokenKey,createTime, targetTime);
 
         /* then */
         assertThrows(TokenException.class, e);
+    }
+
+    @Test
+    @DisplayName("roomId과 일치하는 token이 아닐 때 예외가 던져진다.")
+    public void test8() {
+        /* given */
+
+        String incorrectRoomId = "vcxvd";
+
+        /* when */
+
+        Executable e = () -> tokenQueryService.checkIsPresentAndGetToken(incorrectRoomId,tokenKey,createTime);
+
+        /* then */
+
+        assertThrows(NotFoundTokenException.class, e);
+    }
+
+    @Test
+    @DisplayName("tokenKey에 해당하는 token을 찾지 못하면 예외가 던져진다.")
+    public void test9() {
+        /* given */
+
+        String incorrectTokenKey = "czczc";
+
+        /* when */
+
+        Executable e = () -> tokenQueryService.checkIsPresentAndGetToken(roomId,incorrectTokenKey,createTime);
+
+        /* then */
+
+        assertThrows(NotFoundTokenException.class, e);
     }
 
 

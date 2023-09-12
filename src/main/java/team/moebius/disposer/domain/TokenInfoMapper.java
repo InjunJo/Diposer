@@ -6,24 +6,27 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import team.moebius.disposer.domain.TokenInfo;
 
-@Component
-@RequiredArgsConstructor
 @Slf4j
 public class TokenInfoMapper {
 
-    private final ObjectMapper objectMapper;
+    private final static ObjectMapper objectMapper = new ObjectMapper();
 
     public TokenInfoMapper() {
-        this.objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
     }
 
-    public String toJson(TokenInfo tokenInfo) throws JsonProcessingException {
-        return objectMapper.writeValueAsString(tokenInfo);
+    public static String toJson(TokenInfo tokenInfo) throws RuntimeException {
+        try {
+            return objectMapper.writeValueAsString(tokenInfo);
+        } catch (JsonProcessingException e) {
+            log.info(e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
-    public TokenInfo toTokenInfo(String jsonString) throws RuntimeException {
+    public static TokenInfo toTokenInfo(String jsonString) throws RuntimeException {
         try {
             return objectMapper.readValue(jsonString, TokenInfo.class);
         } catch (JsonProcessingException e) {

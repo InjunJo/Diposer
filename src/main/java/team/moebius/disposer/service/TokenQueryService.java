@@ -23,22 +23,33 @@ import team.moebius.disposer.util.DateTimeSupporter;
 public class TokenQueryService {
 
     private final TokenRepository tokenRepository;
+
+    private final TokenRedisService tokenRedisService;
     private final RecipientRepository recipientRepository;
     private final RecipientResultRepository recipientResultRepository;
-    private final TokenInfoMapper tokenInfoMapper;
-    private final RedisService redisService;
 
     @Transactional(readOnly = true)
-    public TokenInfo provideInfo(long userId, String roomId, String tokenKey, String createTime,Long targetTime) {
+    public TokenInfo provideTokenInfo(long userId, String roomId, String tokenKey,
+        String createTime, Long targetTime) {
 
-        Token token = checkIsPresentAndGetToken(roomId,tokenKey,createTime);
+        Token token = checkIsPresentAndGetToken(roomId, tokenKey, createTime);
         checkIsDistributor(userId, token);
         checkReadExpTime(token, targetTime);
 
-        if(isExpiredReceive(token,targetTime)){
-            return tokenInfoMapper.toTokenInfo(getRecipientResultInfo(token));
+        if (isExpiredReceive(token, targetTime)) {
+            return TokenInfoMapper.toTokenInfo(
+                getRecipientResultInfo(token).getResult()
+            );
         }
 
+        return assembleTokenInfo(token);
+    }
+
+    public TokenInfo provideTokenInfo(Token token) {
+        return assembleTokenInfo(token);
+    }
+
+    private TokenInfo assembleTokenInfo(Token token) {
         List<Recipient> receiveRecipients = getReceiveRecipients(token);
 
         return buildTokenInfo(
@@ -48,19 +59,13 @@ public class TokenQueryService {
         );
     }
 
-    private String getRecipientResultInfo(Token token){
+    private RecipientResult getRecipientResultInfo(Token token) {
 
-        Optional<RecipientResult> resultOptional =
-            recipientResultRepository.findResultByTokeId(token.getId());
-
-        if(resultOptional.isEmpty()){
-            throw new NotFoundTokenException();
-        }
-
-        return resultOptional.get().getResult();
+        return recipientResultRepository.findResultByTokeId(token.getId())
+            .orElseThrow(NotFoundTokenException::new);
     }
 
-    private boolean isExpiredReceive(Token token, long targetTime){
+    private boolean isExpiredReceive(Token token, long targetTime) {
         return token.getReceiveExp() <= targetTime;
     }
 
@@ -102,27 +107,21 @@ public class TokenQueryService {
     }
 
 
-    Token checkIsPresentAndGetToken(String roomId, String tokenKey,String createTime)
+    public Token checkIsPresentAndGetToken(String roomId, String tokenKey, String createTime)
         throws NotFoundTokenException {
 
-        Optional<Token> optional = findTokenFromRedis(roomId,tokenKey,createTime);
-
-        if(optional.isPresent()){
-            return optional.get();
-        }
-
-        Optional<Token> optionalToken =
-            tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey);
-
-        if (optionalToken.isEmpty()) {
-            throw new NotFoundTokenException("The specified token does not exist.");
-        }
-
-        return optionalToken.get();
+        return findTokenFromRedis(roomId, tokenKey, createTime)
+            .orElseGet(() -> findTokenFromDB(roomId, tokenKey));
     }
 
-    private Optional<Token> findTokenFromRedis(String roomId, String tokenKey,String createTime){
-        return redisService.loadTokenFromRedis(tokenKey, roomId, createTime);
+    private Token findTokenFromDB(String roomId, String tokenKey) {
+
+        return tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey)
+            .orElseThrow(() -> new NotFoundTokenException("The specified token does not exist."));
+    }
+
+    private Optional<Token> findTokenFromRedis(String roomId, String tokenKey, String createTime) {
+        return tokenRedisService.loadTokenFromRedis(tokenKey, roomId, createTime);
     }
 
 

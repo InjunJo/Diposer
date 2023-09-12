@@ -14,7 +14,7 @@ import lombok.ToString;
 @AllArgsConstructor
 public class TokenInfo {
 
-    private LocalDateTime distributeTime;
+    private String distributeTime;
 
     private long distributeAmount;
 
