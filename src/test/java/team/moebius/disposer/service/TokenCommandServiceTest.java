@@ -44,9 +44,14 @@ class TokenCommandServiceTest {
     @Mock
     RecipientRepository recipientRepository;
 
+    @Mock
+    RedisService redisService;
+
     Token token;
 
     long nowDataTime;
+
+    String createTime;
 
     ReqDistribution reqDistribution;
 
@@ -67,6 +72,7 @@ class TokenCommandServiceTest {
 
         long now = ZonedDateTime.now().toInstant().toEpochMilli();
         targetTime = now;
+        createTime = String.valueOf(now);
 
         token = buildToken(now);
     }
@@ -189,7 +195,7 @@ class TokenCommandServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey)).thenReturn(
             Optional.ofNullable(token));
 
-        Executable e = () -> tokenCommandService.provideShare(distributorUserId, roomId, tokenKey, targetTime);
+        Executable e = () -> tokenCommandService.provideShare(distributorUserId, roomId, tokenKey, createTime,targetTime);
 
         /* then */
 
@@ -205,7 +211,7 @@ class TokenCommandServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
             .thenReturn(Optional.empty());
 
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,
+        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId,tokenKey,createTime,
             targetTime);
 
         /* then */
@@ -222,7 +228,7 @@ class TokenCommandServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
             .thenReturn(Optional.empty());
 
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,
+        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime,
             targetTime);
 
         /* then */
@@ -246,7 +252,7 @@ class TokenCommandServiceTest {
             .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
 
-        long amount = tokenCommandService.provideShare(anotherUserId, roomId, tokenKey, targetTime);
+        long amount = tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime, targetTime);
 
         /* then */
         assertEquals(3000L, amount);
@@ -264,7 +270,7 @@ class TokenCommandServiceTest {
         when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
             .thenReturn(Optional.ofNullable(token));
 
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey, overTime);
+        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime, overTime);
 
         /* then */
         assertThrows(TokenException.class, e);
@@ -288,7 +294,7 @@ class TokenCommandServiceTest {
             .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
 
-        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey, targetTime);
+        Executable e = () -> tokenCommandService.provideShare(anotherUserId, roomId, tokenKey,createTime, targetTime);
 
         /* then */
         assertThrows(RecipientException.class, e);
@@ -317,7 +323,7 @@ class TokenCommandServiceTest {
             .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findAllByTokenId(token.getId())).thenReturn(recipientList);
 
-        Executable e = () -> tokenCommandService.provideShare(newUserId, roomId, tokenKey, targetTime);
+        Executable e = () -> tokenCommandService.provideShare(newUserId, roomId, tokenKey,createTime, targetTime);
 
         /* then */
         assertThrows(RecipientException.class, e);

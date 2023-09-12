@@ -6,6 +6,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team.moebius.disposer.entity.Recipient;
@@ -23,25 +24,18 @@ public class TokenCommandService {
     private static final int KEY_LENGTH = 3;
     private static final long RECEIVE_EXP = 10 * 60 * 1000;
     private static final long READ_EXP = 7L * 24 * 60 * 60 * 1000;
-    private static final int LIMIT_TRIAL = 10;
     private final TokenRepository tokenRepository;
     private final RecipientRepository recipientRepository;
+    private final TokenQueryService tokenQueryService;
+    private final RedisService redisService;
 
     @Transactional
     public String generateToken(Long userId,String roomId,Long amount,int recipientCount,long nowDataTime){
 
         Token token = buildToken(nowDataTime,userId,roomId,amount,recipientCount);
 
-        int trial = 0;
-
-        while (isDuplicateToken(roomId,token)){
-            if(++trial >= LIMIT_TRIAL){
-                throw new TokenException();
-            }
-            token = buildToken(nowDataTime,userId,roomId,amount,recipientCount);
-        }
-
-        tokenRepository.save(token);
+        Token savedToken = tokenRepository.save(token);
+        redisService.saveTokenToRedis(savedToken);
         generateRecipients(token,amount,recipientCount);
 
         return token.getTokenKey();
@@ -49,11 +43,11 @@ public class TokenCommandService {
 
     // 뿌리기에 대한 받기 작업을 처리 한다.
     @Transactional
-    public Long provideShare(long userId, String roomId, String tokenKey, Long targetTime)
+    public Long provideShare(long userId, String roomId, String tokenKey,String createTime,Long targetTime)
         throws NotFoundTokenException, TokenException {
 
         // 요청한 작업의 Token이 존재 하는지, 존재 한다면 해당 Token 데이터를 반환 받는다. 없다면 에러를 반환 한다.
-        Token token = checkIsPresentAndGetToken(roomId, tokenKey);
+        Token token = tokenQueryService.checkIsPresentAndGetToken(roomId, tokenKey,createTime);
 
         // 뿌리기를 한 사용자가 받기 작업을 요청 했다면 에러를 반환 한다.
         filterDistributorRequest(userId, token);
@@ -119,26 +113,7 @@ public class TokenCommandService {
         }
     }
 
-    private Token checkIsPresentAndGetToken(String roomId, String tokenKey)
-        throws NotFoundTokenException {
 
-        Optional<Token> optionalToken =
-            tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey);
-
-        if (optionalToken.isEmpty()) {
-            throw new NotFoundTokenException("The specified token does not exist.");
-        }
-
-        return optionalToken.get();
-    }
-
-
-    private boolean isDuplicateToken(String roomId,Token token){
-        Optional<Token> optionalToken =
-            tokenRepository.findTokenByRoomIdAndTokenKey(roomId, token.getTokenKey());
-
-        return optionalToken.isPresent();
-    }
 
     // 뿌릴 금액을 인원 수에 맞게 분배하여 저장 한다.
     private void generateRecipients(Token token,Long amount,int recipientCount){

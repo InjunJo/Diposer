@@ -14,6 +14,7 @@ import team.moebius.disposer.dto.ReqReceive;
 import team.moebius.disposer.dto.ReqRetrieval;
 import team.moebius.disposer.dto.RespDistribution;
 import team.moebius.disposer.dto.RespReceive;
+import team.moebius.disposer.dto.RespToken;
 import team.moebius.disposer.service.TokenCommandService;
 import team.moebius.disposer.service.TokenQueryService;
 import team.moebius.disposer.util.DateTimeSupporter;
@@ -26,18 +27,20 @@ public class DisposerController {
     private final TokenQueryService tokenQueryService;
 
     @PostMapping("/distribute")
-    public ResponseEntity<RespDistribution> distribute(@RequestHeader("X-USER-ID") Long userId,
+    public ResponseEntity<RespToken> distribute(@RequestHeader("X-USER-ID") Long userId,
         @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqDistribution reqDistribution) {
+
+        long createTime = DateTimeSupporter.getNowUnixTime();
 
         String tokenKey = tokenCommandService.generateToken(
             userId,
             roomId,
             reqDistribution.getAmount(),
             reqDistribution.getRecipientCount(),
-            DateTimeSupporter.getNowUnixTime()
+            createTime
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new RespDistribution(tokenKey));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new RespToken(tokenKey,createTime));
     }
 
     @PostMapping("/receive")
@@ -48,6 +51,7 @@ public class DisposerController {
             userId,
             roomId,
             reqReceive.getTokenKey(),
+            reqReceive.getCreateTime(),
             DateTimeSupporter.getNowUnixTime()
         );
 
@@ -62,6 +66,7 @@ public class DisposerController {
             userId,
             roomId,
             reqRetrieval.getTokenKey(),
+            reqRetrieval.getCreateTime(),
             DateTimeSupporter.getNowUnixTime()
         );
 

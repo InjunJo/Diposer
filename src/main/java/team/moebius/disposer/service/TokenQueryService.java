@@ -1,6 +1,5 @@
 package team.moebius.disposer.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -27,20 +26,17 @@ public class TokenQueryService {
     private final RecipientRepository recipientRepository;
     private final RecipientResultRepository recipientResultRepository;
     private final TokenInfoMapper tokenInfoMapper;
+    private final RedisService redisService;
 
     @Transactional(readOnly = true)
-    public TokenInfo provideInfo(long userId, String roomId, String tokenKey, Long targetTime) {
+    public TokenInfo provideInfo(long userId, String roomId, String tokenKey, String createTime,Long targetTime) {
 
-        Token token = checkIsPresentAndGetToken(roomId, tokenKey);
+        Token token = checkIsPresentAndGetToken(roomId,tokenKey,createTime);
         checkIsDistributor(userId, token);
         checkReadExpTime(token, targetTime);
 
-        if(isExpireReceive(token,targetTime)){
-            try {
-                return tokenInfoMapper.toTokenInfo(getRecipientResultInfo(token));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+        if(isExpiredReceive(token,targetTime)){
+            return tokenInfoMapper.toTokenInfo(getRecipientResultInfo(token));
         }
 
         List<Recipient> receiveRecipients = getReceiveRecipients(token);
@@ -64,7 +60,7 @@ public class TokenQueryService {
         return resultOptional.get().getResult();
     }
 
-    private boolean isExpireReceive(Token token, long targetTime){
+    private boolean isExpiredReceive(Token token, long targetTime){
         return token.getReceiveExp() <= targetTime;
     }
 
@@ -105,8 +101,15 @@ public class TokenQueryService {
         }
     }
 
-    private Token checkIsPresentAndGetToken(String roomId, String tokenKey)
+
+    Token checkIsPresentAndGetToken(String roomId, String tokenKey,String createTime)
         throws NotFoundTokenException {
+
+        Optional<Token> optional = findTokenFromRedis(roomId,tokenKey,createTime);
+
+        if(optional.isPresent()){
+            return optional.get();
+        }
 
         Optional<Token> optionalToken =
             tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey);
@@ -116,6 +119,10 @@ public class TokenQueryService {
         }
 
         return optionalToken.get();
+    }
+
+    private Optional<Token> findTokenFromRedis(String roomId, String tokenKey,String createTime){
+        return redisService.loadTokenFromRedis(tokenKey, roomId, createTime);
     }
 
 
