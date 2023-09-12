@@ -13,7 +13,8 @@ public interface RecipientRepository extends JpaRepository<Recipient,Long> {
     List<Recipient> findReceivableAllByToken(@Param("tokenId") Long tokenId);
 
     @Query("SELECT r from Recipient r where r.token.id = :tokenId and r.userId is not null")
-    List<Recipient> findReceiveAllByToken(@Param("tokenId") Long tokenId);
+    List<Recipient>
+    findReceiveAllByToken(@Param("tokenId") Long tokenId);
 
     @Query("SELECT r from Recipient r where r.token.id = :tokenId")
     List<Recipient> findAllByTokenId(@Param("tokenId") Long tokenId);
