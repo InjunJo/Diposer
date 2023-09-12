@@ -56,7 +56,7 @@ public class TokenCommandService {
         Token token = checkIsPresentAndGetToken(roomId, tokenKey);
 
         // 뿌리기를 한 사용자가 받기 작업을 요청 했다면 에러를 반환 한다.
-        filterDistributorRequest(userId, token, true);
+        filterDistributorRequest(userId, token);
 
         // 요청 작업을 한 Token이 받기 작업 만료 시간이 초과 됐다면 에러를 반환 한다.
         checkReceiveExpTime(token, targetTime);
@@ -103,10 +103,10 @@ public class TokenCommandService {
         }
     }
 
-    private void filterDistributorRequest(long userId, Token token, boolean isExcludeDistributor)
+    private void filterDistributorRequest(long userId, Token token)
         throws TokenException {
 
-        if (isExcludeDistributor && token.isDistributor(userId)) {
+        if (token.isDistributor(userId)) {
             throw new TokenException("You cannot receive a share from a token you distributed.");
         }
     }

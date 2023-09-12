@@ -2,23 +2,26 @@ package team.moebius.disposer.domain;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
-@RequiredArgsConstructor
+
 @Getter @Builder
 @ToString
+@AllArgsConstructor
 public class TokenInfo {
 
-    private final LocalDateTime distributeTime;
+    private LocalDateTime distributeTime;
 
-    private final long distributeAmount;
+    private long distributeAmount;
 
-    private final long receiveTotalAmount;
+    private long receiveTotalAmount;
 
-    private final List<ReceiveInfo> receiveInfoList;
+    private List<ReceiveInfo> receiveInfoList;
 
-
+    public TokenInfo() {
+    }
 }
