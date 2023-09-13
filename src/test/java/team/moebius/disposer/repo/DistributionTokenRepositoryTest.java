@@ -15,19 +15,19 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.entity.DistributionToken;
 
 @TestPropertySource(locations = "classpath:application.properties")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @DataJpaTest
-class TokenRepositoryTest {
+class DistributionTokenRepositoryTest {
 
     @Autowired
     TokenRepository tokenRepository;
 
     long createdTime;
 
-    Token token;
+    DistributionToken distributionToken;
 
     final String TOKEN_KEY = "abc";
 
@@ -40,7 +40,7 @@ class TokenRepositoryTest {
 
         createdTime = now;
 
-        this.token = Token.builder()
+        this.distributionToken = DistributionToken.builder()
             .tokenKey(TOKEN_KEY)
             .createdDateTime(now)
             .receiveExp(now+10 * 60 * 1000)
@@ -59,12 +59,12 @@ class TokenRepositoryTest {
         /* given */
 
         /* when */
-        Token savedToken = tokenRepository.save(token);
+        DistributionToken savedDistributionToken = tokenRepository.save(distributionToken);
 
         /* then */
 
-        assertNotNull(savedToken);
-        assertEquals(token.getTokenKey(), savedToken.getTokenKey());
+        assertNotNull(savedDistributionToken);
+        assertEquals(distributionToken.getTokenKey(), savedDistributionToken.getTokenKey());
     }
 
     @Test
@@ -74,8 +74,8 @@ class TokenRepositoryTest {
         /* given */
 
         /* when */
-        tokenRepository.save(token);
-        Optional<Token> token = tokenRepository.findTokenByRoomIdAndTokenKey(ROOM_ID,
+        tokenRepository.save(distributionToken);
+        Optional<DistributionToken> token = tokenRepository.findTokenByRoomIdAndTokenKey(ROOM_ID,
             TOKEN_KEY,createdTime);
 
         /* then */

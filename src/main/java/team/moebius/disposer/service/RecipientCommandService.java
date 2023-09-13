@@ -7,12 +7,14 @@ import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import team.moebius.disposer.dto.DistributionTokenDto;
 import team.moebius.disposer.entity.Recipient;
-import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.entity.RecipientResult;
 import team.moebius.disposer.exception.NotFoundTokenException;
 import team.moebius.disposer.exception.RecipientException;
 import team.moebius.disposer.exception.TokenException;
 import team.moebius.disposer.repo.RecipientRepository;
+import team.moebius.disposer.repo.RecipientResultRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -20,41 +22,48 @@ public class RecipientCommandService {
 
     private final RecipientRepository recipientRepository;
 
+    private final RecipientResultRepository recipientResultRepository;
+
     // 뿌리기에 대한 받기 작업을 처리 한다.
     @Transactional
-    public Long provideShare(long userId, Token token, Long targetTime)
+    public Long provideShare(long userId, DistributionTokenDto distributionTokenDto, Long targetTime)
         throws NotFoundTokenException, TokenException {
 
         // 뿌리기를 한 사용자가 받기 작업을 요청 했다면 에러를 반환 한다.
-        filterDistributorRequest(userId, token);
+        filterDistributorRequest(userId, distributionTokenDto);
 
         // 요청 작업을 한 Token이 받기 작업 만료 시간이 초과 됐다면 에러를 반환 한다.
-        checkReceiveExpTime(token, targetTime);
+        checkReceiveExpTime(distributionTokenDto, targetTime);
 
         // Token에 대해 받기 작업이 가능한 데이터를 찾아 반환 한다.
-        return allocateRecipientForUser(token, userId);
+        return allocateRecipientForUser(distributionTokenDto, userId);
     }
 
-    private void filterDistributorRequest(long userId, Token token)
+    @Transactional
+    public void savePreComputedResult(List<RecipientResult> recipientResults) {
+        recipientResultRepository.saveAll(recipientResults);
+    }
+
+    private void filterDistributorRequest(long userId, DistributionTokenDto distributionTokenDto)
         throws TokenException {
 
-        if (token.isDistributor(userId)) {
+        if (distributionTokenDto.isDistributor(userId)) {
             throw new TokenException("You cannot receive a share from a token you distributed.");
         }
     }
 
-    private void checkReceiveExpTime(Token token, long targetTime)
+    private void checkReceiveExpTime(DistributionTokenDto distributionTokenDto, long targetTime)
         throws TokenException {
 
-        if (token.getReceiveExp() <= targetTime) {
+        if (distributionTokenDto.getReceiveExp() <= targetTime) {
             throw new TokenException("The token has expired for receiving.");
         }
     }
 
-    private Long allocateRecipientForUser(Token token, long userId) {
+    private Long allocateRecipientForUser(DistributionTokenDto distributionTokenDto, long userId) {
 
         List<Recipient> recipients =
-            recipientRepository.findAllByTokenId(token.getId());
+            recipientRepository.findAllByTokenId(distributionTokenDto.getId());
 
         checkAlreadyReceiveUser(recipients, userId);
 
@@ -88,10 +97,10 @@ public class RecipientCommandService {
     }
 
     // 뿌릴 금액을 인원 수에 맞게 분배하여 저장 한다.
-    public void generateRecipients(Token token, Long amount, int recipientCount) {
+    public void generateRecipients(DistributionTokenDto distributionToken, Long amount, int recipientCount) {
 
         List<Recipient> recipients = divideAmount(amount, recipientCount).stream()
-            .map(money -> new Recipient(token, money))
+            .map(money -> new Recipient(distributionToken, money))
             .toList();
 
         recipientRepository.saveAll(recipients);
