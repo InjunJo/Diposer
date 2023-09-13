@@ -7,6 +7,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import lombok.Getter;
+import team.moebius.disposer.dto.DistributionTokenDto;
 
 @Entity
 @Getter
@@ -17,9 +18,17 @@ public class RecipientResult {
     private Long id;
 
     @ManyToOne
-    private Token token;
+    private DistributionToken distributionToken;
 
     @Column(columnDefinition = "json")
     private String result;
 
+    public RecipientResult(DistributionTokenDto distributionTokenDto, String result) {
+        this.distributionToken = distributionTokenDto.convertDistributionToken();
+        this.result = result;
+    }
+
+    public RecipientResult() {
+
+    }
 }

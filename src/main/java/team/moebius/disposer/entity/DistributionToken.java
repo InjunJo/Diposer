@@ -15,7 +15,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder @Getter
-public class Token implements Serializable {
+public class DistributionToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,7 +38,4 @@ public class Token implements Serializable {
     private Long readExp;
 
 
-    public boolean isDistributor(long distributorId){
-        return this.distributorId == distributorId;
-    }
 }

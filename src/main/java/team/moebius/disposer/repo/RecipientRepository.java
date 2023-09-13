@@ -9,16 +9,15 @@ import team.moebius.disposer.entity.Recipient;
 
 public interface RecipientRepository extends JpaRepository<Recipient,Long> {
 
-    @Query("SELECT r from Recipient r where r.token.id = :tokenId and r.userId is null")
+    @Query("SELECT r from Recipient r where r.distributionToken.id = :tokenId and r.userId is null")
     List<Recipient> findReceivableAllByToken(@Param("tokenId") Long tokenId);
 
-    @Query("SELECT r from Recipient r where r.token.id = :tokenId and r.userId is not null")
-    List<Recipient>
-    findReceiveAllByToken(@Param("tokenId") Long tokenId);
+    @Query("SELECT r from Recipient r where r.distributionToken.id = :tokenId and r.userId is not null")
+    List<Recipient> findAllocatedRecipientsByTokenId(@Param("tokenId") Long tokenId);
 
-    @Query("SELECT r from Recipient r where r.token.id = :tokenId")
+    @Query("SELECT r from Recipient r where r.distributionToken.id = :tokenId")
     List<Recipient> findAllByTokenId(@Param("tokenId") Long tokenId);
 
-    @Query("SELECT r from Recipient r where r.token.id = :tokenId and r.userId = :userId")
+    @Query("SELECT r from Recipient r where r.distributionToken.id = :tokenId and r.userId = :userId")
     Optional<Recipient> findAlreadyReceiveUser(@Param("tokenId") Long tokenId,@Param("userId") Long userId);
 }

@@ -11,8 +11,8 @@ public class DateTimeSupporter {
         return ZonedDateTime.now().toInstant().toEpochMilli();
     }
 
-    public static LocalDateTime convertUnixTime(long unixTime){
-        return Instant.ofEpochMilli(unixTime).atZone(ZoneId.of("UTC")).toLocalDateTime();
+    public static String convertUnixTime(long unixTime,String zoneId){
+        return Instant.ofEpochMilli(unixTime).atZone(ZoneId.of(zoneId)).toLocalDateTime().toString();
     }
 
 }

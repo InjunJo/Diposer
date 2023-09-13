@@ -1,20 +1,20 @@
 package team.moebius.disposer.domain;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
-
+/**
+ *  조회 요청에 대한 관련 데이터를 담는다
+ */
 @Getter @Builder
 @ToString
 @AllArgsConstructor
-public class TokenInfo {
+public class DistributionInfo {
 
-    private LocalDateTime distributeTime;
+    private String distributeTime;
 
     private long distributeAmount;
 
@@ -22,6 +22,6 @@ public class TokenInfo {
 
     private List<ReceiveInfo> receiveInfoList;
 
-    public TokenInfo() {
+    public DistributionInfo() {
     }
 }

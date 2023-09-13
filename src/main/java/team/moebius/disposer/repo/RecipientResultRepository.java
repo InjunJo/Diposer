@@ -8,6 +8,6 @@ import team.moebius.disposer.entity.RecipientResult;
 
 public interface RecipientResultRepository extends JpaRepository<RecipientResult,Long> {
 
-    @Query("SELECT r from RecipientResult r where r.token.id = :tokenId")
+    @Query("SELECT r from RecipientResult r where r.distributionToken.id = :tokenId")
     Optional<RecipientResult> findResultByTokeId(@Param("tokenId") Long TokenId);
 }

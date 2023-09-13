@@ -1,4 +1,12 @@
 
+## Sequence Diagram
+1. 뿌리기 API
+   <img src="src/main/resources/static/distributionSD.png"/>
+
+
+
+
+
 1. 받기 API를 구현하기 위해서 recipient라는 table에 (id,amount,user_id,token_id)
 Attribute로 정의하고, 처음 Token 생성(뿌리기 요청) 되면 user_id가 모두 null인 상태로 받기 요청을
 하는 사용자로 채워지게 된다. 다시 말해 user_id가 null인 tuple은 받기 요청이 가능한 상태를 의미하며,

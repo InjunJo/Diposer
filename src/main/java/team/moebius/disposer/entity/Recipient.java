@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.ToString;
 import lombok.ToString.Exclude;
 import org.springframework.lang.Nullable;
+import team.moebius.disposer.dto.DistributionTokenDto;
 
 @Entity
 @Getter @ToString
@@ -20,7 +21,7 @@ public class Recipient {
 
     @ManyToOne
     @Exclude
-    private Token token;
+    private DistributionToken distributionToken;
 
     private Long amount;
 
@@ -34,13 +35,13 @@ public class Recipient {
         this.userId = userId;
     }
 
-    public Recipient(Token token, Long amount) {
-        this.token = token;
+    public Recipient(DistributionTokenDto distributionTokenDto, Long amount) {
+        this.distributionToken = distributionTokenDto.convertDistributionToken();
         this.amount = amount;
     }
 
-    public Recipient(Token token, Long amount, @Nullable Long userId) {
-        this.token = token;
+    public Recipient(DistributionTokenDto distributionTokenDto, Long amount, @Nullable Long userId) {
+        this.distributionToken = distributionTokenDto.convertDistributionToken();
         this.amount = amount;
         this.userId = userId;
     }
