@@ -19,19 +19,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import team.moebius.disposer.domain.ReceiveInfo;
-import team.moebius.disposer.domain.TokenInfo;
+import team.moebius.disposer.domain.DistributionInfo;
 import team.moebius.disposer.entity.Recipient;
-import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.entity.DistributionToken;
 import team.moebius.disposer.exception.NotFoundTokenException;
 import team.moebius.disposer.exception.TokenException;
 import team.moebius.disposer.repo.RecipientRepository;
 import team.moebius.disposer.repo.TokenRepository;
 
 @ExtendWith(MockitoExtension.class)
-class TokenQueryServiceTest {
+class DistributionQueryServiceTest {
 
     @InjectMocks
-    TokenQueryService tokenQueryService;
+    DistributionQueryService distributionQueryService;
 
     @Mock
     TokenRepository tokenRepository;
@@ -40,9 +40,9 @@ class TokenQueryServiceTest {
     RecipientRepository recipientRepository;
 
     @Mock
-    TokenRedisService tokenRedisService;
+    DistributionRedisService distributionRedisService;
 
-    Token token;
+    DistributionToken distributionToken;
 
     long distributorUserId = 1234567L;
 
@@ -56,7 +56,7 @@ class TokenQueryServiceTest {
 
     String tokenKey = "abc";
 
-    TokenInfo tokenInfo;
+    DistributionInfo distributionInfo;
 
     @BeforeEach
     public void setUp() {
@@ -64,12 +64,12 @@ class TokenQueryServiceTest {
         targetTime = now;
         createTime = String.valueOf(now);
 
-        token = buildToken(now);
-        tokenInfo = buildTokenInfo();
+        distributionToken = buildToken(now);
+        distributionInfo = buildTokenInfo();
     }
 
-    private Token buildToken(long now) {
-        return Token.builder()
+    private DistributionToken buildToken(long now) {
+        return DistributionToken.builder()
             .tokenKey(tokenKey)
             .createdDateTime(now)
             .receiveExp(now + 10 * 60 * 1000)
@@ -80,14 +80,14 @@ class TokenQueryServiceTest {
             .roomId(roomId)
             .build();
     }
-    private TokenInfo buildTokenInfo() {
+    private DistributionInfo buildTokenInfo() {
 
         List<ReceiveInfo> receiveInfoList = List.of(
             new ReceiveInfo(30000L, 234L),
             new ReceiveInfo(30000L, 222L)
         );
 
-        return TokenInfo.builder()
+        return DistributionInfo.builder()
             .distributeTime(LocalDateTime.now().toString())
             .distributeAmount(90000L)
             .receiveTotalAmount(60000L)
@@ -95,56 +95,6 @@ class TokenQueryServiceTest {
             .build();
     }
 
-
-    @Test @DisplayName("뿌린 사람 자신은 뿌린 건에 대해 조회할 수 있다")
-    public void test1() {
-        /* given */
-
-        List<Recipient> recipients = List.of(
-            new Recipient(token,10000L,113L),
-            new Recipient(token,10000L,114L)
-        );
-
-        /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.ofNullable(token));
-        when(recipientRepository.findReceiveAllByToken(token.getId())).thenReturn(recipients);
-
-        TokenInfo tokenInfo = tokenQueryService.provideTokenInfo(distributorUserId, roomId, tokenKey,createTime,targetTime);
-
-        /* then */
-        assertNotNull(tokenInfo);
-    }
-
-    @Test @DisplayName("뿌린 사람이 아닌 사람이 뿌린 건에 대해 조회하려고 할 때 예외를 반환할 수 있다.")
-    public void test2() {
-        /* given */
-
-        /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.ofNullable(token));
-
-        Executable e = () -> tokenQueryService.provideTokenInfo(anotherUserId, roomId, tokenKey,createTime, targetTime);
-
-        /* then */
-        assertThrows(TokenException.class, e);
-    }
-
-    @Test @DisplayName("조회 유효 기간이 만료되면 예외를 던질 수 있다.")
-    public void test3() {
-        /* given */
-
-        Token token = buildToken(targetTime-7L * 24 * 60 * 60 * 1000);
-
-        /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
-            .thenReturn(Optional.ofNullable(token));
-
-        Executable e = () -> tokenQueryService.provideTokenInfo(distributorUserId, roomId, tokenKey,createTime, targetTime);
-
-        /* then */
-        assertThrows(TokenException.class, e);
-    }
 
     @Test
     @DisplayName("roomId과 일치하는 token이 아닐 때 예외가 던져진다.")
@@ -155,7 +105,7 @@ class TokenQueryServiceTest {
 
         /* when */
 
-        Executable e = () -> tokenQueryService.checkIsPresentAndGetToken(incorrectRoomId,tokenKey,createTime);
+        Executable e = () -> distributionQueryService.getDistributionToken(incorrectRoomId,tokenKey,createTime);
 
         /* then */
 
@@ -171,7 +121,7 @@ class TokenQueryServiceTest {
 
         /* when */
 
-        Executable e = () -> tokenQueryService.checkIsPresentAndGetToken(roomId,incorrectTokenKey,createTime);
+        Executable e = () -> distributionQueryService.getDistributionToken(roomId,incorrectTokenKey,createTime);
 
         /* then */
 

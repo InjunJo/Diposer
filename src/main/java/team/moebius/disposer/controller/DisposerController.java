@@ -1,30 +1,39 @@
 package team.moebius.disposer.controller;
 
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
-import team.moebius.disposer.domain.TokenInfo;
+import team.moebius.disposer.domain.DistributionInfo;
+import team.moebius.disposer.dto.DistributionTokenDto;
 import team.moebius.disposer.dto.ReqDistribution;
 import team.moebius.disposer.dto.ReqReceive;
 import team.moebius.disposer.dto.ReqRetrieval;
 import team.moebius.disposer.dto.RespReceive;
 import team.moebius.disposer.dto.RespToken;
-import team.moebius.disposer.entity.Token;
-import team.moebius.disposer.service.TokenCommandService;
-import team.moebius.disposer.service.TokenQueryService;
+import team.moebius.disposer.entity.RecipientResult;
+import team.moebius.disposer.service.RecipientCommandService;
+import team.moebius.disposer.service.DistributionCommandService;
+import team.moebius.disposer.service.DistributionQueryService;
+import team.moebius.disposer.service.RecipientQueryService;
 import team.moebius.disposer.util.DateTimeSupporter;
 
 @RestController
 @RequiredArgsConstructor
 public class DisposerController {
 
-    private final TokenCommandService tokenCommandService;
-    private final TokenQueryService tokenQueryService;
+    private final DistributionCommandService distributionCommandService;
+    private final DistributionQueryService distributionQueryService;
+    private final RecipientCommandService recipientCommandService;
+    private final RecipientQueryService recipientQueryService;
+    private static final long CHECK_INTERVAL = 10 * 60 * 1000;
 
     @PostMapping("/distribute")
     public ResponseEntity<RespToken> distribute(@RequestHeader("X-USER-ID") Long userId,
@@ -32,7 +41,7 @@ public class DisposerController {
 
         long createTime = DateTimeSupporter.getNowUnixTime();
 
-        String tokenKey = tokenCommandService.generateToken(
+        DistributionTokenDto distributionToken = distributionCommandService.distribute(
             userId,
             roomId,
             reqDistribution.getAmount(),
@@ -40,19 +49,26 @@ public class DisposerController {
             createTime
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new RespToken(tokenKey,createTime));
+        recipientCommandService.generateRecipients(distributionToken, reqDistribution.getAmount(),
+            reqDistribution.getRecipientCount());
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(new RespToken(distributionToken.getTokenKey(), createTime));
     }
 
     @PostMapping("/receive")
     public ResponseEntity<RespReceive> receive(@RequestHeader("X-USER-ID") Long userId,
-        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqReceive reqReceive){
+        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqReceive reqReceive) {
 
-        Token token = tokenQueryService.checkIsPresentAndGetToken(roomId, reqReceive.getTokenKey(),
-            reqReceive.getCreateTime());
+        DistributionTokenDto distributionTokenDto = distributionQueryService.getDistributionToken(
+            roomId,
+            reqReceive.getTokenKey(),
+            reqReceive.getCreateTime()
+        );
 
-        long shareAmount = tokenCommandService.provideShare(
+        long shareAmount = recipientCommandService.provideShare(
             userId,
-            token,
+            distributionTokenDto,
             DateTimeSupporter.getNowUnixTime()
         );
 
@@ -60,18 +76,39 @@ public class DisposerController {
     }
 
     @GetMapping("/retrieve")
-    public ResponseEntity<TokenInfo> RetrieveDistributionInfo(@RequestHeader("X-USER-ID") Long userId,
-        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqRetrieval reqRetrieval){
+    public ResponseEntity<DistributionInfo> RetrieveDistributionInfo(
+        @RequestHeader("X-USER-ID") Long userId,
+        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqRetrieval reqRetrieval) {
 
-        TokenInfo tokenInfo = tokenQueryService.provideTokenInfo(
-            userId,
+        long readRequestTime = DateTimeSupporter.getNowUnixTime();
+
+        DistributionTokenDto distributionTokenDto = distributionQueryService.getDistributionToken(
             roomId,
             reqRetrieval.getTokenKey(),
-            reqRetrieval.getCreateTime(),
-            DateTimeSupporter.getNowUnixTime()
+            reqRetrieval.getCreateTime()
         );
 
-        return ResponseEntity.ok(tokenInfo);
+        recipientQueryService.checkValidRequest(userId, distributionTokenDto,readRequestTime);
+
+        DistributionInfo distributionInfo =
+            recipientQueryService.getDistributionInfo(distributionTokenDto,readRequestTime);
+
+        return ResponseEntity.ok(distributionInfo);
+    }
+    @Scheduled(fixedRate = 4000)
+    void savePreComputedResult(){
+
+        long nowUnixTime = DateTimeSupporter.getNowUnixTime();
+
+        Set<DistributionTokenDto> expiredDistributionTokens =
+            distributionQueryService.findExpiredDistributionTokens(nowUnixTime);
+
+        System.out.println(expiredDistributionTokens);
+
+        List<RecipientResult> recipientResults =
+            recipientQueryService.mapTokensToRecipientResults(expiredDistributionTokens);
+
+        recipientCommandService.savePreComputedResult(recipientResults);
     }
 
 }

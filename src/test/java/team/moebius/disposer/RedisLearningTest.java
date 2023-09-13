@@ -9,7 +9,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.transaction.annotation.Transactional;
-import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.entity.DistributionToken;
 import team.moebius.disposer.repo.TokenRepository;
 import team.moebius.disposer.util.DateTimeSupporter;
 
@@ -17,7 +17,7 @@ import team.moebius.disposer.util.DateTimeSupporter;
 public class RedisLearningTest {
 
     @Autowired
-    RedisTemplate<String, Token> redisTemplate;
+    RedisTemplate<String, DistributionToken> redisTemplate;
 
     @Autowired
     TokenRepository tokenRepository;
@@ -27,23 +27,23 @@ public class RedisLearningTest {
     public void test(){
         /* given */
 
-        Optional<Token> optionalToken = tokenRepository.findById(2L);
+        Optional<DistributionToken> optionalToken = tokenRepository.findById(2L);
 
-        Token token = optionalToken.get();
+        DistributionToken distributionToken = optionalToken.get();
 
-        SetOperations<String, Token> operations1 = redisTemplate.opsForSet();
+        SetOperations<String, DistributionToken> operations1 = redisTemplate.opsForSet();
 
-        ZSetOperations<String, Token> operations = redisTemplate.opsForZSet();
+        ZSetOperations<String, DistributionToken> operations = redisTemplate.opsForZSet();
 
         /* when */
 
         String key = String.join("-",
-                token.getTokenKey(),
-                token.getRoomId(),
-                String.valueOf(token.getCreatedDateTime())
+                distributionToken.getTokenKey(),
+                distributionToken.getRoomId(),
+                String.valueOf(distributionToken.getCreatedDateTime())
             );
 
-        operations1.add(key,token);
+        operations1.add(key, distributionToken);
 
 
 //        /* then */
@@ -56,38 +56,38 @@ public class RedisLearningTest {
     public void test2(){
         /* given */
 
-        Optional<Token> optionalToken = tokenRepository.findById(8L);
-        Optional<Token> optionalToken2 = tokenRepository.findById(10L);
+        Optional<DistributionToken> optionalToken = tokenRepository.findById(8L);
+        Optional<DistributionToken> optionalToken2 = tokenRepository.findById(10L);
 
-        Token token = optionalToken.get();
-        Token token2 = optionalToken2.get();
+        DistributionToken distributionToken = optionalToken.get();
+        DistributionToken distributionToken2 = optionalToken2.get();
 
-        ZSetOperations<String, Token> operations = redisTemplate.opsForZSet();
+        ZSetOperations<String, DistributionToken> operations = redisTemplate.opsForZSet();
 
         /* when */
 
         String key = String.join("-",
-            token.getTokenKey(),
-            token.getRoomId(),
-            String.valueOf(token.getCreatedDateTime())
+            distributionToken.getTokenKey(),
+            distributionToken.getRoomId(),
+            String.valueOf(distributionToken.getCreatedDateTime())
         );
 
         String key2 = String.join("-",
-            token2.getTokenKey(),
-            token2.getRoomId(),
-            String.valueOf(token2.getCreatedDateTime())
+            distributionToken2.getTokenKey(),
+            distributionToken2.getRoomId(),
+            String.valueOf(distributionToken2.getCreatedDateTime())
         );
 
         String zsetKey = "tokens";
 
-        operations.add(zsetKey,token,token.getCreatedDateTime());
-        operations.add(zsetKey,token2,token2.getCreatedDateTime());
+        operations.add(zsetKey, distributionToken, distributionToken.getCreatedDateTime());
+        operations.add(zsetKey, distributionToken2, distributionToken2.getCreatedDateTime());
 
 
 //        /* then */
 
-        Set<Token> tokens = operations.rangeByScore(zsetKey, 0, DateTimeSupporter.getNowUnixTime()-10 * 60 * 1000);
-        System.out.println(tokens);
+        Set<DistributionToken> distributionTokens = operations.rangeByScore(zsetKey, 0, DateTimeSupporter.getNowUnixTime()-10 * 60 * 1000);
+        System.out.println(distributionTokens);
     }
 
 }

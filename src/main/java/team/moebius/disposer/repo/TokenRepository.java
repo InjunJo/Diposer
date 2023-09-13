@@ -4,11 +4,12 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.entity.DistributionToken;
 
-public interface TokenRepository extends JpaRepository<Token,Long> {
+public interface TokenRepository extends JpaRepository<DistributionToken,Long> {
 
-    @Query("SELECT t from Token t where t.roomId = :roomId and t.tokenKey = :tokenKey")
-    Optional<Token> findTokenByRoomIdAndTokenKey(@Param("roomId") String roomId, @Param("tokenKey") String tokenKey);
+    @Query("SELECT t from DistributionToken t where t.roomId = :roomId and t.tokenKey = :tokenKey and t.createdDateTime = :createdTime")
+    Optional<DistributionToken> findTokenByRoomIdAndTokenKey(@Param("roomId") String roomId,
+        @Param("tokenKey") String tokenKey, @Param("createdTime") long createdTime);
 
 }

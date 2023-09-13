@@ -1,18 +1,16 @@
 package team.moebius.disposer.domain;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 
 @Getter @Builder
 @ToString
 @AllArgsConstructor
-public class TokenInfo {
+public class DistributionInfo {
 
     private String distributeTime;
 
@@ -22,6 +20,6 @@ public class TokenInfo {
 
     private List<ReceiveInfo> receiveInfoList;
 
-    public TokenInfo() {
+    public DistributionInfo() {
     }
 }
