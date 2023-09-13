@@ -36,13 +36,9 @@ public class TokenQueryService {
         checkIsDistributor(userId, token);
         checkReadExpTime(token, targetTime);
 
-        if (isExpiredReceive(token, targetTime)) {
-            return TokenInfoMapper.toTokenInfo(
-                getRecipientResultInfo(token).getResult()
-            );
-        }
-
-        return assembleTokenInfo(token);
+        return isExpiredReceive(token, targetTime) ?
+            TokenInfoMapper.toTokenInfo(getRecipientResultInfo(token).getResult()) :
+            assembleTokenInfo(token);
     }
 
     public TokenInfo provideTokenInfo(Token token) {
@@ -107,16 +103,15 @@ public class TokenQueryService {
     }
 
 
-    public Token checkIsPresentAndGetToken(String roomId, String tokenKey, String createTime)
+    public Token checkIsPresentAndGetToken(String roomId, String tokenKey, String createdTime)
         throws NotFoundTokenException {
 
-        return findTokenFromRedis(roomId, tokenKey, createTime)
-            .orElseGet(() -> findTokenFromDB(roomId, tokenKey));
+        return findTokenFromRedis(roomId, tokenKey, createdTime)
+            .orElseGet(() -> findTokenFromDB(roomId, tokenKey,createdTime));
     }
 
-    private Token findTokenFromDB(String roomId, String tokenKey) {
-
-        return tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey)
+    private Token findTokenFromDB(String roomId, String tokenKey,String createdTime) {
+        return tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey,Long.parseLong(createdTime))
             .orElseThrow(() -> new NotFoundTokenException("The specified token does not exist."));
     }
 

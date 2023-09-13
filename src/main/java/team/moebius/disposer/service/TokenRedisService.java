@@ -57,7 +57,7 @@ public class TokenRedisService {
     }
 
     public Optional<Token> loadTokenFromRedis(String tokenKey,String roomId, String createdDateTime){
-        return Optional.of(
+        return Optional.ofNullable(
             opsForSet.randomMember(createHashKey(tokenKey, roomId, createdDateTime))
         );
     }

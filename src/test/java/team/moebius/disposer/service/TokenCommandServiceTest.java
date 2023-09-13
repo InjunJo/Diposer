@@ -45,8 +45,6 @@ class TokenCommandServiceTest {
     @Mock
     TokenRedisService tokenRedisService;
 
-    @Mock
-    TokenQueryService tokenQueryService;
 
     Token token;
 
@@ -143,7 +141,7 @@ class TokenCommandServiceTest {
         /* when */
         when(tokenRepository.save(any())).thenReturn(token);
 
-        String tokenKey = tokenCommandService.generateToken(
+        Token token = tokenCommandService.generateToken(
             234254L,
             "Rbdc",
             reqDistribution.getAmount(),
@@ -152,7 +150,7 @@ class TokenCommandServiceTest {
         );
 
         /* then */
-        assertEquals(3, tokenKey.length());
+        assertEquals(3, token.getTokenKey().length());
     }
 
     @Test
@@ -269,6 +267,20 @@ class TokenCommandServiceTest {
 
         /* then */
         assertThrows(RecipientException.class, e);
+    }
+
+    @Test @DisplayName("Json형태의 조회 API 데이터를 생성 할 수 있다")
+    public void test14(){
+        /* given */
+
+        Set<Token> expiredReceiveTokens = Set.of(token);
+
+        /* when */
+
+        when(tokenRedisService.findExpiredReceiveToken()).thenReturn(expiredReceiveTokens);
+        tokenCommandService.savePreComputedResult();
+
+        /* then */
     }
 
 }

@@ -106,7 +106,7 @@ class TokenQueryServiceTest {
         );
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey,Long.parseLong(createTime)))
             .thenReturn(Optional.ofNullable(token));
         when(recipientRepository.findReceiveAllByToken(token.getId())).thenReturn(recipients);
 
@@ -121,7 +121,7 @@ class TokenQueryServiceTest {
         /* given */
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey,Long.parseLong(createTime)))
             .thenReturn(Optional.ofNullable(token));
 
         Executable e = () -> tokenQueryService.provideTokenInfo(anotherUserId, roomId, tokenKey,createTime, targetTime);
@@ -137,7 +137,7 @@ class TokenQueryServiceTest {
         Token token = buildToken(targetTime-7L * 24 * 60 * 60 * 1000);
 
         /* when */
-        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey))
+        when(tokenRepository.findTokenByRoomIdAndTokenKey(roomId, tokenKey,Long.parseLong(createTime)))
             .thenReturn(Optional.ofNullable(token));
 
         Executable e = () -> tokenQueryService.provideTokenInfo(distributorUserId, roomId, tokenKey,createTime, targetTime);

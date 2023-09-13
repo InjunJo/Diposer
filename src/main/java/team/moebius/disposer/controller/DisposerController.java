@@ -15,6 +15,8 @@ import team.moebius.disposer.dto.ReqRetrieval;
 import team.moebius.disposer.dto.RespReceive;
 import team.moebius.disposer.dto.RespToken;
 import team.moebius.disposer.entity.Token;
+import team.moebius.disposer.repo.RecipientRepository;
+import team.moebius.disposer.service.RecipientCommandService;
 import team.moebius.disposer.service.TokenCommandService;
 import team.moebius.disposer.service.TokenQueryService;
 import team.moebius.disposer.util.DateTimeSupporter;
@@ -26,13 +28,15 @@ public class DisposerController {
     private final TokenCommandService tokenCommandService;
     private final TokenQueryService tokenQueryService;
 
+    private final RecipientCommandService recipientCommandService;
+
     @PostMapping("/distribute")
     public ResponseEntity<RespToken> distribute(@RequestHeader("X-USER-ID") Long userId,
         @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqDistribution reqDistribution) {
 
         long createTime = DateTimeSupporter.getNowUnixTime();
 
-        String tokenKey = tokenCommandService.generateToken(
+        Token token = tokenCommandService.generateToken(
             userId,
             roomId,
             reqDistribution.getAmount(),
@@ -40,17 +44,22 @@ public class DisposerController {
             createTime
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new RespToken(tokenKey,createTime));
+        recipientCommandService.generateRecipients(token, reqDistribution.getAmount(), reqDistribution.getRecipientCount());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(new RespToken(token.getTokenKey(), createTime));
     }
 
     @PostMapping("/receive")
     public ResponseEntity<RespReceive> receive(@RequestHeader("X-USER-ID") Long userId,
-        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqReceive reqReceive){
+        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqReceive reqReceive) {
 
-        Token token = tokenQueryService.checkIsPresentAndGetToken(roomId, reqReceive.getTokenKey(),
-            reqReceive.getCreateTime());
+        Token token = tokenQueryService.checkIsPresentAndGetToken(
+            roomId,
+            reqReceive.getTokenKey(),
+            reqReceive.getCreateTime()
+        );
 
-        long shareAmount = tokenCommandService.provideShare(
+        long shareAmount = recipientCommandService.provideShare(
             userId,
             token,
             DateTimeSupporter.getNowUnixTime()
@@ -60,8 +69,9 @@ public class DisposerController {
     }
 
     @GetMapping("/retrieve")
-    public ResponseEntity<TokenInfo> RetrieveDistributionInfo(@RequestHeader("X-USER-ID") Long userId,
-        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqRetrieval reqRetrieval){
+    public ResponseEntity<TokenInfo> RetrieveDistributionInfo(
+        @RequestHeader("X-USER-ID") Long userId,
+        @RequestHeader("X-ROOM-ID") String roomId, @RequestBody ReqRetrieval reqRetrieval) {
 
         TokenInfo tokenInfo = tokenQueryService.provideTokenInfo(
             userId,
