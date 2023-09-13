@@ -56,7 +56,7 @@ class TokenFactoryTest {
         tokenFactory = configTokenFactory();
     }
 
-        private TokenFactory configTokenFactory() {
+    private TokenFactory configTokenFactory() {
 
         String keySource = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         long receiveExp = 10 * 60 * 1000;
@@ -134,7 +134,6 @@ class TokenFactoryTest {
         /* then */
         assertEquals(3, token.getTokenKey().length());
     }
-
 
 
 }

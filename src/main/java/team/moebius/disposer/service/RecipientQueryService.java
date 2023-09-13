@@ -18,23 +18,33 @@ import team.moebius.disposer.repo.RecipientResultRepository;
 import team.moebius.disposer.util.DateTimeSupporter;
 
 /**
- *  받기 요청 작업에 대한 상태 조회를 할 수 있는 Read 클래스
+ * 받기 요청 작업에 대한 상태 조회를 할 수 있는 Read 클래스
  */
 @Service
-@RequiredArgsConstructor
 public class RecipientQueryService {
+
     private final RecipientRepository recipientRepository;
     private final RecipientResultRepository recipientResultRepository;
-    @Value("${token.receive_exp}")
-    private long TOKEN_RECEIVE_EXP;
-    @Value("${dateTime.ZoneId}")
-    private String ZONE_ID;
+    private final long TOKEN_RECEIVE_EXP;
+    private final String ZONE_ID;
 
-    public DistributionInfo getDistributionInfo(DistributionTokenDto distributionTokenDto, long requestTime) {
+    public RecipientQueryService(RecipientRepository recipientRepository,
+        RecipientResultRepository recipientResultRepository,
+        @Value("${token.receive_exp}") long TOKEN_RECEIVE_EXP,
+        @Value("${dateTime.ZoneId}") String ZONE_ID) {
+
+        this.recipientRepository = recipientRepository;
+        this.recipientResultRepository = recipientResultRepository;
+        this.TOKEN_RECEIVE_EXP = TOKEN_RECEIVE_EXP;
+        this.ZONE_ID = ZONE_ID;
+    }
+
+    public DistributionInfo getDistributionInfo(DistributionTokenDto distributionTokenDto,
+        long requestTime) {
 
         return isExpiredReceive(distributionTokenDto, requestTime) ?
-            fetchNonExpiredDistributionInfo(distributionTokenDto) :
-            fetchExpiredDistributionInfo(distributionTokenDto);
+            fetchExpiredDistributionInfo(distributionTokenDto):
+            fetchNonExpiredDistributionInfo(distributionTokenDto);
     }
 
     public void checkValidRequest(Long userId, DistributionTokenDto distributionTokenDto,
@@ -56,12 +66,13 @@ public class RecipientQueryService {
             .toList();
     }
 
-    private String getDistributionInfoAsJson(DistributionTokenDto distributionTokenDto){
+    private String getDistributionInfoAsJson(DistributionTokenDto distributionTokenDto) {
         return DistributionInfoMapper.toJson(fetchNonExpiredDistributionInfo(distributionTokenDto));
     }
 
 
-    private DistributionInfo fetchNonExpiredDistributionInfo(DistributionTokenDto distributionTokenDto) {
+    private DistributionInfo fetchNonExpiredDistributionInfo(
+        DistributionTokenDto distributionTokenDto) {
         List<Recipient> allocatedRecipients = getAllocatedRecipients(distributionTokenDto);
 
         return buildDistributionInfo(
@@ -71,7 +82,8 @@ public class RecipientQueryService {
         );
     }
 
-    private DistributionInfo fetchExpiredDistributionInfo(DistributionTokenDto distributionTokenDto){
+    private DistributionInfo fetchExpiredDistributionInfo(
+        DistributionTokenDto distributionTokenDto) {
         return DistributionInfoMapper.toTokenInfo(
             getRecipientResultInfo(distributionTokenDto).getResult()
         );
@@ -108,7 +120,8 @@ public class RecipientQueryService {
 
         return DistributionInfo.builder()
             .distributeTime(
-                DateTimeSupporter.convertUnixTime(distributionTokenDto.getCreatedDateTime(),ZONE_ID)
+                DateTimeSupporter.convertUnixTime(distributionTokenDto.getCreatedDateTime(),
+                    ZONE_ID)
             )
             .distributeAmount(distributionTokenDto.getAmount())
             .receiveTotalAmount(totalAmount)

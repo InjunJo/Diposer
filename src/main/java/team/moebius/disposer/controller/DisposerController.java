@@ -103,8 +103,6 @@ public class DisposerController {
         Set<DistributionTokenDto> expiredDistributionTokens =
             distributionQueryService.findExpiredDistributionTokens(nowUnixTime);
 
-        System.out.println(expiredDistributionTokens);
-
         List<RecipientResult> recipientResults =
             recipientQueryService.mapTokensToRecipientResults(expiredDistributionTokens);
 

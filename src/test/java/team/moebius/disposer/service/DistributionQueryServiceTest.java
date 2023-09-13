@@ -1,10 +1,14 @@
 package team.moebius.disposer.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import team.moebius.disposer.domain.DistributionInfo;
 import team.moebius.disposer.domain.ReceiveInfo;
+import team.moebius.disposer.dto.DistributionTokenDto;
 import team.moebius.disposer.entity.DistributionToken;
 import team.moebius.disposer.exception.NotFoundTokenException;
 import team.moebius.disposer.repo.DistributionTokenRepository;
@@ -88,6 +93,41 @@ class DistributionQueryServiceTest {
             .build();
     }
 
+    @Test @DisplayName("DB에서 roomId,tokenKey,createTime과 일치하는 Token을 찾을 수 있다")
+    public void test(){
+        /* given */
+
+        /* when */
+
+        when(distributionRedisService.loadTokenFromRedis(any(),any(),any())).thenReturn(
+            Optional.empty());
+        when(distributionTokenRepository.findTokenByRelatedData(roomId, tokenKey,
+            Long.parseLong(createTime))).thenReturn(Optional.of(distributionToken));
+
+        DistributionTokenDto token = distributionQueryService.getDistributionToken(
+            roomId, tokenKey, createTime);
+
+        System.out.println(token);
+
+        /* then */
+    }
+
+    @Test @DisplayName("Redis에서 roomId,tokenKey,createTime과 일치하는 Token을 찾을 수 있다")
+    public void test1(){
+        /* given */
+
+        /* when */
+
+        when(distributionRedisService.loadTokenFromRedis(tokenKey,roomId,createTime)).thenReturn(
+            Optional.of(new DistributionTokenDto(distributionToken)));
+
+        DistributionTokenDto token = distributionQueryService.getDistributionToken(
+            roomId, tokenKey, createTime);
+
+        /* then */
+        assertEquals(token.getId(),distributionToken.getId());
+    }
+
 
     @Test
     @DisplayName("roomId과 일치하는 token이 아닐 때 예외가 던져진다.")
@@ -98,10 +138,14 @@ class DistributionQueryServiceTest {
 
         /* when */
 
+        when(distributionRedisService.loadTokenFromRedis(tokenKey,incorrectRoomId,createTime)).thenReturn(
+            Optional.empty());
+        when(distributionTokenRepository.findTokenByRelatedData(incorrectRoomId, tokenKey,
+            Long.parseLong(createTime))).thenReturn(Optional.empty());
+
         Executable e = () -> distributionQueryService.getDistributionToken(incorrectRoomId,tokenKey,createTime);
 
         /* then */
-
         assertThrows(NotFoundTokenException.class, e);
     }
 
@@ -113,6 +157,10 @@ class DistributionQueryServiceTest {
         String incorrectTokenKey = "czczc";
 
         /* when */
+        when(distributionRedisService.loadTokenFromRedis(incorrectTokenKey,roomId,createTime)).thenReturn(
+            Optional.empty());
+        when(distributionTokenRepository.findTokenByRelatedData(roomId, incorrectTokenKey,
+            Long.parseLong(createTime))).thenReturn(Optional.empty());
 
         Executable e = () -> distributionQueryService.getDistributionToken(roomId,incorrectTokenKey,createTime);
 
