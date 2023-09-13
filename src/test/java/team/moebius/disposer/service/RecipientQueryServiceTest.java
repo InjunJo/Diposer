@@ -1,6 +1,7 @@
 package team.moebius.disposer.service;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +30,7 @@ import team.moebius.disposer.repo.RecipientResultRepository;
 @ExtendWith(MockitoExtension.class)
 class RecipientQueryServiceTest {
 
+    @InjectMocks
     RecipientQueryService recipientQueryService;
 
     @Mock
@@ -67,13 +69,9 @@ class RecipientQueryServiceTest {
 
         distributionToken = buildToken(now);
         distributionInfo = buildTokenInfo();
-        this.recipientQueryService = configRecipientQueryService();
+
     }
 
-    private RecipientQueryService configRecipientQueryService() {
-        return new RecipientQueryService(recipientRepository, recipientResultRepository, tokenReceiveExp,
-            "UTC");
-    }
 
     private DistributionToken buildToken(long now) {
         return DistributionToken.builder()

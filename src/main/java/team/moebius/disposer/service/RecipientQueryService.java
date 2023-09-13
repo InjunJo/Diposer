@@ -3,7 +3,6 @@ package team.moebius.disposer.service;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import team.moebius.disposer.domain.DistributionInfo;
 import team.moebius.disposer.domain.DistributionInfoMapper;
@@ -21,23 +20,13 @@ import team.moebius.disposer.util.DateTimeSupporter;
  * 받기 요청 작업에 대한 상태 조회를 할 수 있는 Read 클래스
  */
 @Service
+@RequiredArgsConstructor
 public class RecipientQueryService {
 
     private final RecipientRepository recipientRepository;
     private final RecipientResultRepository recipientResultRepository;
-    private final long TOKEN_RECEIVE_EXP;
-    private final String ZONE_ID;
+    private final String ZONE_ID = "UTC";
 
-    public RecipientQueryService(RecipientRepository recipientRepository,
-        RecipientResultRepository recipientResultRepository,
-        @Value("${token.receive_exp}") long TOKEN_RECEIVE_EXP,
-        @Value("${dateTime.ZoneId}") String ZONE_ID) {
-
-        this.recipientRepository = recipientRepository;
-        this.recipientResultRepository = recipientResultRepository;
-        this.TOKEN_RECEIVE_EXP = TOKEN_RECEIVE_EXP;
-        this.ZONE_ID = ZONE_ID;
-    }
 
     public DistributionInfo getDistributionInfo(DistributionTokenDto distributionTokenDto,
         long requestTime) {
@@ -90,7 +79,7 @@ public class RecipientQueryService {
     }
 
     private boolean isExpiredReceive(DistributionTokenDto distributionTokenDto, long requestTime) {
-        return distributionTokenDto.getReceiveExp() <= requestTime + TOKEN_RECEIVE_EXP;
+        return distributionTokenDto.getReceiveExp() <= requestTime;
     }
 
 
