@@ -17,6 +17,9 @@ import team.moebius.disposer.repo.RecipientRepository;
 import team.moebius.disposer.repo.RecipientResultRepository;
 import team.moebius.disposer.util.DateTimeSupporter;
 
+/**
+ *  받기 요청 작업에 대한 상태 조회를 할 수 있는 Read 클래스
+ */
 @Service
 @RequiredArgsConstructor
 public class RecipientQueryService {

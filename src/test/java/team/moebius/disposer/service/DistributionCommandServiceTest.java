@@ -1,7 +1,6 @@
 package team.moebius.disposer.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -14,9 +13,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import team.moebius.disposer.dto.DistributionTokenDto;
-import team.moebius.disposer.entity.DistributionToken;
 import team.moebius.disposer.dto.ReqDistribution;
-import team.moebius.disposer.repo.TokenRepository;
+import team.moebius.disposer.entity.DistributionToken;
+import team.moebius.disposer.repo.DistributionTokenRepository;
 import team.moebius.disposer.util.DateTimeSupporter;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,7 +25,7 @@ class DistributionCommandServiceTest {
     DistributionCommandService distributionCommandService;
 
     @Mock
-    TokenRepository tokenRepository;
+    DistributionTokenRepository distributionTokenRepository;
 
     @Mock
     DistributionRedisService distributionRedisService;
@@ -88,7 +87,7 @@ class DistributionCommandServiceTest {
         ReqDistribution reqDistribution = new ReqDistribution(10000L, 3);
 
         /* when */
-        when(tokenRepository.save(any())).thenReturn(this.distributionToken);
+        when(distributionTokenRepository.save(any())).thenReturn(this.distributionToken);
 
         DistributionTokenDto distributionToken = distributionCommandService.distribute(
             234254L,

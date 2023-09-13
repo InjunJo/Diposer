@@ -1,15 +1,10 @@
 package team.moebius.disposer.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,14 +13,12 @@ import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import team.moebius.disposer.domain.ReceiveInfo;
 import team.moebius.disposer.domain.DistributionInfo;
-import team.moebius.disposer.entity.Recipient;
+import team.moebius.disposer.domain.ReceiveInfo;
 import team.moebius.disposer.entity.DistributionToken;
 import team.moebius.disposer.exception.NotFoundTokenException;
-import team.moebius.disposer.exception.TokenException;
+import team.moebius.disposer.repo.DistributionTokenRepository;
 import team.moebius.disposer.repo.RecipientRepository;
-import team.moebius.disposer.repo.TokenRepository;
 
 @ExtendWith(MockitoExtension.class)
 class DistributionQueryServiceTest {
@@ -34,7 +27,7 @@ class DistributionQueryServiceTest {
     DistributionQueryService distributionQueryService;
 
     @Mock
-    TokenRepository tokenRepository;
+    DistributionTokenRepository distributionTokenRepository;
 
     @Mock
     RecipientRepository recipientRepository;

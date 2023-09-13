@@ -10,7 +10,7 @@ import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.transaction.annotation.Transactional;
 import team.moebius.disposer.entity.DistributionToken;
-import team.moebius.disposer.repo.TokenRepository;
+import team.moebius.disposer.repo.DistributionTokenRepository;
 import team.moebius.disposer.util.DateTimeSupporter;
 
 @SpringBootTest
@@ -20,14 +20,14 @@ public class RedisLearningTest {
     RedisTemplate<String, DistributionToken> redisTemplate;
 
     @Autowired
-    TokenRepository tokenRepository;
+    DistributionTokenRepository distributionTokenRepository;
 
     @Test
     @Transactional
     public void test(){
         /* given */
 
-        Optional<DistributionToken> optionalToken = tokenRepository.findById(2L);
+        Optional<DistributionToken> optionalToken = distributionTokenRepository.findById(2L);
 
         DistributionToken distributionToken = optionalToken.get();
 
@@ -56,8 +56,8 @@ public class RedisLearningTest {
     public void test2(){
         /* given */
 
-        Optional<DistributionToken> optionalToken = tokenRepository.findById(8L);
-        Optional<DistributionToken> optionalToken2 = tokenRepository.findById(10L);
+        Optional<DistributionToken> optionalToken = distributionTokenRepository.findById(8L);
+        Optional<DistributionToken> optionalToken2 = distributionTokenRepository.findById(10L);
 
         DistributionToken distributionToken = optionalToken.get();
         DistributionToken distributionToken2 = optionalToken2.get();
