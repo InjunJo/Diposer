@@ -1,10 +1,9 @@
 package team.moebius.disposer.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.ZonedDateTime;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +16,7 @@ import team.moebius.disposer.dto.ReqDistribution;
 import team.moebius.disposer.entity.DistributionToken;
 import team.moebius.disposer.repo.DistributionTokenRepository;
 import team.moebius.disposer.util.DateTimeSupporter;
+import team.moebius.disposer.util.TokenFactory;
 
 @ExtendWith(MockitoExtension.class)
 class DistributionCommandServiceTest {
@@ -31,6 +31,9 @@ class DistributionCommandServiceTest {
     DistributionRedisService distributionRedisService;
 
     DistributionToken distributionToken;
+
+    @Mock
+    TokenFactory tokenFactory;
 
     long nowDataTime;
 
@@ -60,12 +63,23 @@ class DistributionCommandServiceTest {
         targetTime = now;
         createTime = String.valueOf(now);
 
-        distributionToken = buildToken(now);
+        this.distributionToken = buildToken(now);
+    }
+
+    private TokenFactory configTokenFactory() {
+
+        String keySource = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        long receiveExp = 10 * 60 * 1000;
+        long readExp = 7 * 24 * 60 * 60 * 1000;
+        int keyLength = 3;
+
+        return new TokenFactory(keySource, receiveExp, readExp, keyLength);
     }
 
 
     private DistributionToken buildToken(long now) {
         return DistributionToken.builder()
+            .id(234L)
             .tokenKey(tokenKey)
             .createdDateTime(now)
             .receiveExp(now + 10 * 60 * 1000)
@@ -78,27 +92,19 @@ class DistributionCommandServiceTest {
     }
 
 
-
-    @Test
-    @DisplayName("token을 생성하여 임의의 3자리 tokenKey를 반환할 수 있다.")
-    public void test() {
+    @Test @DisplayName("전달 받은 Token을 저장하고 저장된 Token의 Dto를 반환할 수 있다")
+    public void test(){
         /* given */
 
-        ReqDistribution reqDistribution = new ReqDistribution(10000L, 3);
-
         /* when */
-        when(distributionTokenRepository.save(any())).thenReturn(this.distributionToken);
 
-        DistributionTokenDto distributionToken = distributionCommandService.distribute(
-            234254L,
-            "Rbdc",
-            reqDistribution.getAmount(),
-            reqDistribution.getRecipientCount(),
-            nowDataTime
-        );
-
+        when(tokenFactory.buildToken(nowDataTime,distributorUserId,roomId,amount,recipientCount)).thenReturn(distributionToken);
+        when(distributionTokenRepository.save(distributionToken)).thenReturn(distributionToken);
+        DistributionTokenDto distributionTokenDto = distributionCommandService.distribute(distributorUserId,
+            roomId, amount, recipientCount, nowDataTime);
         /* then */
-        assertEquals(3, distributionToken.getTokenKey().length());
+
+        Assertions.assertNotNull(distributionTokenDto);
     }
 
 

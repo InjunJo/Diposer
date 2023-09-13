@@ -176,19 +176,5 @@ class RecipientCommandServiceTest {
         assertThrows(RecipientException.class, e);
     }
 
-//    @Test @DisplayName("Json형태의 조회 API 데이터를 생성 할 수 있다")
-//    public void test14(){
-//        /* given */
-//
-//        Set<DistributionToken> expiredReceiveDistributionTokens = Set.of(distributionToken);
-//
-//        /* when */
-//
-//        when(distributionRedisService.findExpiredReceiveToken()).thenReturn(
-//            expiredReceiveDistributionTokens);
-//        recipientCommandService.savePreComputedResult();
-//
-//        /* then */
-//    }
 
 }
