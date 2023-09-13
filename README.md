@@ -14,6 +14,9 @@
 2. recipient - 받기 요청을 할당하고 기록하기 위한 Table
 3. recipient_result - 받기가 만료된 Token에 대한 조회 데이터를 미리 Json 형태로 저장하는 Table
 
+## API
+- https://documenter.getpostman.com/view/25401186/2s9YC4VDFe
+
 
 ## 문제 해결 전략
 1. DB에 Write 하는 작업과 Read 작업을 기준으로 Class 분리
@@ -33,10 +36,9 @@
    - 여러 서버 인스턴스의 시계 동기화를 위한 NTP 필요.
 
 ## application.properties value
-spring.redis.host=localhost
-spring.redis.port=6379
-token.receive_exp = 600000
-token.read_exp = 604800000
-token.key_resource = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
-token.key_lenth = 3
-dateTime.ZoneId = UTC
+- spring.redis.host=localhost
+- spring.redis.port=6379
+- token.receive_exp = 600000
+- token.read_exp = 604800000
+- token.key_resource = ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
+- token.key_lenth = 3
