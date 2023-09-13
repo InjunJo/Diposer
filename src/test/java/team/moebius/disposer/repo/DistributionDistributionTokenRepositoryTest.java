@@ -20,10 +20,10 @@ import team.moebius.disposer.entity.DistributionToken;
 @TestPropertySource(locations = "classpath:application.properties")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @DataJpaTest
-class DistributionTokenRepositoryTest {
+class DistributionDistributionTokenRepositoryTest {
 
     @Autowired
-    TokenRepository tokenRepository;
+    DistributionTokenRepository distributionTokenRepository;
 
     long createdTime;
 
@@ -59,7 +59,7 @@ class DistributionTokenRepositoryTest {
         /* given */
 
         /* when */
-        DistributionToken savedDistributionToken = tokenRepository.save(distributionToken);
+        DistributionToken savedDistributionToken = distributionTokenRepository.save(distributionToken);
 
         /* then */
 
@@ -74,8 +74,8 @@ class DistributionTokenRepositoryTest {
         /* given */
 
         /* when */
-        tokenRepository.save(distributionToken);
-        Optional<DistributionToken> token = tokenRepository.findTokenByRoomIdAndTokenKey(ROOM_ID,
+        distributionTokenRepository.save(distributionToken);
+        Optional<DistributionToken> token = distributionTokenRepository.findTokenByRelatedData(ROOM_ID,
             TOKEN_KEY,createdTime);
 
         /* then */

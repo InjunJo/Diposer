@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import team.moebius.disposer.entity.DistributionToken;
 
+/**
+ *  요청 받은 데이터를 통해 Token을 생성하여 반환하는 클래스
+ */
 @Component
 public class TokenFactory {
     private final String TOKEN_KEY_RESOURCE;
@@ -29,7 +32,7 @@ public class TokenFactory {
         this.TOKEN_KEY_LENGTH = TOKEN_KEY_LENGTH;
     }
 
-    // 뿌리기 요청을 받아 각각 처리된 Token 데이터를 저장 한다.
+    // 사용자의 요청에 따라 Random한 TokenKey를 갖고, 세부 내용을 갖는 Token을 생성하여 반환 한다.
     public DistributionToken buildToken(long now, Long userId, String roomId, Long amount,
         int recipientCount) {
 
@@ -45,7 +48,7 @@ public class TokenFactory {
             .build();
     }
 
-    // Stream generate를 통해 임의의 3자리 문자열 token key를 생성 한다.
+    // 임의의 문자열 자리 token key를 생성 한다.
     String generateTokenKey() {
         Random random = new Random();
 
@@ -57,12 +60,12 @@ public class TokenFactory {
             .collect(Collectors.joining());
     }
 
-    // unix time 형식으로 뿌리기 건에 대한 받기 요청 10분 유효 시간을 계산해서 반환 한다.
+    // 전달 받은 시간에 받기 요청 유효 시간을 더해 unix time인 long 타입으로 반환 한다.
     long getReceiveExpTime(long epochMilli) {
         return epochMilli + TOKEN_RECEIVE_EXP;
     }
 
-    // unix time 형식으로 뿌리기 건에 대한 조회 요청 7일 유효 시간을 계산해서 반환 한다.
+    // 전달 받은 시간에 조회 요청 유효 시간을 더해 unix time인 long 타입으로 반환 한다.
     long getReadExpTime(long epochMilli) {
         return epochMilli + TOKEN_READ_EXP;
     }

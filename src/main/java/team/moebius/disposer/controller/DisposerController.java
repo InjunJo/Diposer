@@ -95,7 +95,7 @@ public class DisposerController {
 
         return ResponseEntity.ok(distributionInfo);
     }
-    @Scheduled(fixedRate = 4000)
+    @Scheduled(fixedRate = CHECK_INTERVAL)
     void savePreComputedResult(){
 
         long nowUnixTime = DateTimeSupporter.getNowUnixTime();
